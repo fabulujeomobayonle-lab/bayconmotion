@@ -250,7 +250,7 @@ function Portfolio() {
                 {!item.embed && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground text-xs uppercase tracking-widest">
                     <span className="text-3xl mb-2">▶</span>
-                    Embed URL Placeholder
+                    {"▶\nEHTTPS://WWW.YOUTUBE.COM/SHORTS/KFNO2TZT84S?FEATURE=SHAREMBED URL PLACEHOLDER"}
                   </div>
                 )}
               </div>
