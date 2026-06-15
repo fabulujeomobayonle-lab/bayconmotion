@@ -271,7 +271,7 @@ function Portfolio() {
                 <div className="relative w-full aspect-video bg-black">
                   {item.embed_url ? (
                     <iframe
-                      src={item.embed_url}
+                      src={toEmbedUrl(item.embed_url)}
                       title={item.title}
                       className="absolute inset-0 h-full w-full"
                       frameBorder={0}
