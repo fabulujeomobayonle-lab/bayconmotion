@@ -340,7 +340,7 @@ const TIERS = [
       "Up to 5 minutes edited video",
       "Basic color grading",
       "Captions / subtitles",
-      "3-day delivery",
+      "2-day delivery",
     ],
     popular: false,
   },
