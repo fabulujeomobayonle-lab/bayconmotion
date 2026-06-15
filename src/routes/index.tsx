@@ -221,6 +221,38 @@ function Services() {
 /* ------------------------------------------------------------------ */
 /* Portfolio                                                           */
 /* ------------------------------------------------------------------ */
+function toEmbedUrl(raw: string): string {
+  const url = raw.trim();
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    // youtu.be/<id>
+    if (host === "youtu.be") {
+      const id = u.pathname.slice(1).split("/")[0];
+      return id ? `https://www.youtube.com/embed/${id}` : url;
+    }
+    if (host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) {
+      // already an embed
+      if (u.pathname.startsWith("/embed/")) return url;
+      // /watch?v=ID
+      const v = u.searchParams.get("v");
+      if (v) return `https://www.youtube.com/embed/${v}`;
+      // /shorts/ID  or  /live/ID
+      const m = u.pathname.match(/^\/(shorts|live)\/([^/?#]+)/);
+      if (m) return `https://www.youtube.com/embed/${m[2]}`;
+    }
+    // TikTok: https://www.tiktok.com/@user/video/<id>
+    if (host.endsWith("tiktok.com")) {
+      if (u.pathname.startsWith("/embed/")) return url;
+      const m = u.pathname.match(/\/video\/(\d+)/);
+      if (m) return `https://www.tiktok.com/embed/v2/${m[1]}`;
+    }
+  } catch {
+    /* fall through */
+  }
+  return url;
+}
+
 type PublishedWork = {
   id: string;
   title: string;
