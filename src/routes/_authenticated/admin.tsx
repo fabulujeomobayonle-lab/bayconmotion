@@ -2,7 +2,13 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as supabaseTyped } from "@/integrations/supabase/client";
+// Database type isn't regenerated yet for new tables; use an untyped facade for table ops.
+const supabase = supabaseTyped as unknown as {
+  auth: typeof supabaseTyped.auth;
+  storage: typeof supabaseTyped.storage;
+  from: (table: string) => any;
+};
 import { LogOut, Pencil, Trash2, Plus, Upload, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -52,7 +58,7 @@ function AdminPage() {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
       const { data } = await supabase
-        .from("user_roles" as never)
+        .from("user_roles")
         .select("role")
         .eq("user_id", u.user.id)
         .eq("role", "admin")
@@ -64,7 +70,7 @@ function AdminPage() {
   async function load() {
     setLoading(true);
     const { data, error } = await supabase
-      .from("works" as never)
+      .from("works")
       .select("*")
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
@@ -84,7 +90,7 @@ function AdminPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this work permanently?")) return;
-    const { error } = await supabase.from("works" as never).delete().eq("id", id);
+    const { error } = await supabase.from("works").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
     load();
@@ -93,7 +99,7 @@ function AdminPage() {
   async function handleToggleStatus(w: Work) {
     const next = w.status === "published" ? "draft" : "published";
     const { error } = await supabase
-      .from("works" as never)
+      .from("works")
       .update({ status: next })
       .eq("id", w.id);
     if (error) return toast.error(error.message);
@@ -267,11 +273,11 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
       };
 
       if (work) {
-        const { error } = await supabase.from("works" as never).update(payload).eq("id", work.id);
+        const { error } = await supabase.from("works").update(payload).eq("id", work.id);
         if (error) throw error;
       } else {
         const { data: u } = await supabase.auth.getUser();
-        const { error } = await supabase.from("works" as never).insert({ ...payload, created_by: u.user?.id });
+        const { error } = await supabase.from("works").insert({ ...payload, created_by: u.user?.id });
         if (error) throw error;
       }
       toast.success(work ? "Updated" : "Created");
