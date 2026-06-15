@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { supabase as supabaseTyped } from "@/integrations/supabase/client";
+const supabase = supabaseTyped as unknown as {
+  from: (table: string) => any;
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -98,12 +102,20 @@ function Navbar() {
             </li>
           ))}
         </ul>
-        <a
-          href="#contact"
-          className="hidden md:inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground neon-glow hover:brightness-110 transition"
-        >
-          Get a Quote
-        </a>
+          <div className="hidden md:flex items-center gap-3">
+            <a
+              href="/admin"
+              className="text-sm text-muted-foreground hover:text-foreground transition"
+            >
+              Admin
+            </a>
+            <a
+              href="#contact"
+              className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground neon-glow hover:brightness-110 transition"
+            >
+              Get a Quote
+            </a>
+          </div>
       </nav>
     </header>
   );
@@ -209,54 +221,89 @@ function Services() {
 /* ------------------------------------------------------------------ */
 /* Portfolio                                                           */
 /* ------------------------------------------------------------------ */
-const PORTFOLIO: { category: string; embed: string }[] = [
-  // Talking Head
-  { category: "Talking Head", embed: "" /* <!-- Replace with your YouTube/TikTok embed URL --> */ },
-  { category: "Talking Head", embed: "" /* <!-- Replace with your YouTube/TikTok embed URL --> */ },
-  // Motion Graphics
-  { category: "Motion Graphics", embed: "" /* <!-- Replace with your YouTube/TikTok embed URL --> */ },
-  { category: "Motion Graphics", embed: "" /* <!-- Replace with your YouTube/TikTok embed URL --> */ },
-  // General Editing
-  { category: "General Editing", embed: "" /* <!-- Replace with your YouTube/TikTok embed URL --> */ },
-  { category: "General Editing", embed: "" /* <!-- Replace with your YouTube/TikTok embed URL --> */ },
-];
+type PublishedWork = {
+  id: string;
+  title: string;
+  category: string;
+  description: string | null;
+  embed_url: string | null;
+  video_url: string | null;
+  thumbnail_url: string | null;
+};
 
 function Portfolio() {
+  const [works, setWorks] = useState<PublishedWork[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("works")
+      .select("id, title, category, description, embed_url, video_url, thumbnail_url")
+      .eq("status", "published")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false })
+      .then(({ data }: { data: PublishedWork[] | null }) => {
+        setWorks(data ?? []);
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <Section id="portfolio" className="bg-card/30">
       <div className="mx-auto max-w-7xl">
         <SectionHeader eyebrow="Portfolio" title="Recent Cuts" />
-        <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {PORTFOLIO.map((item, i) => (
-            <div
-              key={i}
-              className="group relative rounded-xl neon-border bg-black overflow-hidden transition-all duration-300 hover:neon-glow"
-            >
-              <div className="absolute top-3 left-3 z-10 rounded-full bg-primary/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                {item.category}
-              </div>
-              <div className="relative w-full aspect-video bg-black">
-                {/* Replace src below with your YouTube or TikTok embed URL.
-                    YouTube: https://www.youtube.com/embed/VIDEO_ID
-                    TikTok:  https://www.tiktok.com/embed/v2/VIDEO_ID         */}
-                <iframe
-                  src={item.embed}
-                  title={`${item.category} sample ${i + 1}`}
-                  className="absolute inset-0 h-full w-full"
-                  frameBorder={0}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-                {!item.embed && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground text-xs uppercase tracking-widest">
-                    <span className="text-3xl mb-2">▶</span>
-                    {"▶\nEHTTPS://WWW.YOUTUBE.COM/SHORTS/KFNO2TZT84S?FEATURE=SHAREMBED URL PLACEHOLDER"}
+        {loading ? (
+          <p className="mt-16 text-center text-sm text-muted-foreground">Loading works…</p>
+        ) : works.length === 0 ? (
+          <div className="mt-16 rounded-2xl neon-border bg-background/40 p-12 text-center">
+            <p className="text-muted-foreground">No published works yet. <a href="/admin" className="text-primary hover:underline">Sign in to upload</a>.</p>
+          </div>
+        ) : (
+          <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {works.map((item) => (
+              <div
+                key={item.id}
+                className="group relative rounded-xl neon-border bg-black overflow-hidden transition-all duration-300 hover:neon-glow"
+              >
+                <div className="absolute top-3 left-3 z-10 rounded-full bg-primary/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+                  {item.category}
+                </div>
+                <div className="relative w-full aspect-video bg-black">
+                  {item.embed_url ? (
+                    <iframe
+                      src={item.embed_url}
+                      title={item.title}
+                      className="absolute inset-0 h-full w-full"
+                      frameBorder={0}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : item.video_url ? (
+                    <video
+                      src={item.video_url}
+                      poster={item.thumbnail_url ?? undefined}
+                      controls
+                      preload="metadata"
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : item.thumbnail_url ? (
+                    <img src={item.thumbnail_url} alt={item.title} className="absolute inset-0 h-full w-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-xs uppercase tracking-widest">
+                      <span className="text-3xl">▶</span>
+                    </div>
+                  )}
+                </div>
+                {(item.title || item.description) && (
+                  <div className="p-4">
+                    <h3 className="font-bold text-foreground truncate">{item.title}</h3>
+                    {item.description && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{item.description}</p>}
                   </div>
                 )}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </Section>
   );
