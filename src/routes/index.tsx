@@ -75,9 +75,11 @@ function Navbar() {
 
   const links = [
     { href: "#services", label: "Services" },
+    { href: "#process", label: "Process" },
     { href: "#portfolio", label: "Work" },
     { href: "#about", label: "About" },
     { href: "#pricing", label: "Pricing" },
+    { href: "#faq", label: "FAQ" },
     { href: "#contact", label: "Contact" },
   ];
 
@@ -355,6 +357,17 @@ function About() {
           videos to jaw-dropping motion graphics, we turn raw footage into{" "}
           <span className="neon-text font-semibold">cinematic, high-impact content</span> that stops
           the scroll.
+        </p>
+        <p className="mt-6 text-base md:text-lg leading-relaxed text-muted-foreground">
+          Every project starts with your story. We dig into the footage, the intent, and the
+          audience, then craft a cut that carries momentum from the first frame to the last.
+          Whether it's a 30-second ad, a long-form YouTube documentary, or a full brand campaign,
+          our edits are engineered for retention, replay value, and results.
+        </p>
+        <p className="mt-6 text-base md:text-lg leading-relaxed text-muted-foreground">
+          Backed by hundreds of hours behind the timeline, we blend cinematic storytelling with
+          modern platform-native pacing — punchy for Reels and TikTok, patient and layered for
+          YouTube and brand films.
         </p>
       </div>
     </Section>
