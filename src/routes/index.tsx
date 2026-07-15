@@ -633,16 +633,264 @@ function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
 /* ------------------------------------------------------------------ */
 /* Page                                                                */
 /* ------------------------------------------------------------------ */
+const STATS = [
+  { value: "500+", label: "Videos Delivered" },
+  { value: "120M+", label: "Views Generated" },
+  { value: "48h", label: "Average Turnaround" },
+  { value: "98%", label: "Client Retention" },
+];
+
+function Stats() {
+  return (
+    <Section id="stats" className="py-16 md:py-20">
+      <div className="mx-auto max-w-6xl grid grid-cols-2 md:grid-cols-4 gap-6">
+        {STATS.map((s) => (
+          <div
+            key={s.label}
+            className="glass rounded-2xl p-6 text-center transition hover:neon-glow"
+          >
+            <div className="font-display text-4xl md:text-5xl font-black neon-text">{s.value}</div>
+            <div className="mt-2 text-xs uppercase tracking-widest text-muted-foreground">
+              {s.label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+const PROCESS = [
+  {
+    step: "01",
+    title: "Discovery Call",
+    desc: "We jump on a quick call to understand your brand voice, goals, deadline, and the audience you're trying to reach. No cookie-cutter briefs.",
+  },
+  {
+    step: "02",
+    title: "Upload & Brief",
+    desc: "Send us your footage, references, and any assets. We lock the creative direction, edit style, music vibe, and delivery milestones.",
+  },
+  {
+    step: "03",
+    title: "Edit & Iterate",
+    desc: "Our editors build the first cut with pacing, color, sound design, and motion graphics. You review, we refine — as many revisions as your tier allows.",
+  },
+  {
+    step: "04",
+    title: "Deliver & Scale",
+    desc: "Final files are delivered in every ratio you need — 16:9, 9:16, 1:1 — ready to post, run as ads, or fuel a full content calendar.",
+  },
+];
+
+function Process() {
+  return (
+    <Section id="process" className="bg-card/30">
+      <div className="mx-auto max-w-7xl">
+        <SectionHeader eyebrow="Process" title="How We Work" />
+        <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {PROCESS.map((p) => (
+            <div
+              key={p.step}
+              className="relative glass rounded-2xl p-8 transition hover:-translate-y-2 hover:neon-glow"
+            >
+              <div className="font-display text-5xl font-black neon-text opacity-80">{p.step}</div>
+              <h3 className="mt-4 text-lg font-bold text-foreground">{p.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{p.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+const WHY = [
+  {
+    title: "Retention-First Editing",
+    desc: "Every cut is engineered around watch-time. We remove filler, tighten pacing, and layer B-roll that keeps eyes locked to the screen.",
+  },
+  {
+    title: "Platform Native Cuts",
+    desc: "We ship vertical, square, and horizontal versions tuned for TikTok, Reels, Shorts, and long-form YouTube — no lazy re-crops.",
+  },
+  {
+    title: "Cinematic Color & Sound",
+    desc: "Broadcast-grade color grading, mastered audio, and sound design that gives even talking heads a cinematic feel.",
+  },
+  {
+    title: "Fast, Predictable Delivery",
+    desc: "Clear milestones, transparent revisions, and turnarounds you can plan a content calendar around.",
+  },
+  {
+    title: "Own Motion Graphics",
+    desc: "No stock templates. Every intro, lower third, and kinetic type sequence is designed inside your brand system.",
+  },
+  {
+    title: "Long-Term Partnership",
+    desc: "Most of our clients stay for months or years. We learn your voice, your edits get sharper, your channel compounds.",
+  },
+];
+
+function WhyChooseUs() {
+  return (
+    <Section id="why">
+      <div className="mx-auto max-w-7xl">
+        <SectionHeader eyebrow="Why Baycon" title="What Sets Us Apart" />
+        <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {WHY.map((w) => (
+            <div
+              key={w.title}
+              className="glass rounded-2xl p-8 transition hover:-translate-y-2 hover:neon-glow"
+            >
+              <h3 className="text-lg font-bold text-foreground">{w.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{w.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+const TESTIMONIALS = [
+  {
+    quote:
+      "Baycon transformed my YouTube channel. Watch time doubled inside a month and the edits genuinely feel cinematic. I don't stress about post anymore.",
+    name: "Jordan M.",
+    role: "YouTube Creator, 480k subs",
+  },
+  {
+    quote:
+      "We handed them raw founder interviews and got back ads that outperformed our agency spend. Clean, sharp, on-brand every single time.",
+    name: "Priya S.",
+    role: "Head of Growth, SaaS Startup",
+  },
+  {
+    quote:
+      "The motion graphics work is on another level. Our launch video felt like a full production and it was turned around in under a week.",
+    name: "Marcus L.",
+    role: "Brand Director, DTC Fashion",
+  },
+];
+
+function Testimonials() {
+  return (
+    <Section id="testimonials" className="bg-card/30">
+      <div className="mx-auto max-w-7xl">
+        <SectionHeader eyebrow="Testimonials" title="What Clients Say" />
+        <div className="mt-16 grid gap-6 md:grid-cols-3">
+          {TESTIMONIALS.map((t) => (
+            <figure
+              key={t.name}
+              className="glass rounded-2xl p-8 flex flex-col transition hover:-translate-y-2 hover:neon-glow"
+            >
+              <div className="text-primary text-3xl leading-none">"</div>
+              <blockquote className="mt-2 text-sm leading-relaxed text-muted-foreground flex-1">
+                {t.quote}
+              </blockquote>
+              <figcaption className="mt-6 border-t border-border pt-4">
+                <div className="text-sm font-bold text-foreground">{t.name}</div>
+                <div className="text-xs text-muted-foreground">{t.role}</div>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+const FAQS = [
+  {
+    q: "How fast can you turn around a project?",
+    a: "Most Basic and Standard edits go out in 2–3 days. Premium projects with heavy motion graphics ship within 7 days. Rush delivery is available on request.",
+  },
+  {
+    q: "How do I send you my footage?",
+    a: "You can share via Google Drive, Dropbox, Frame.io, or WeTransfer. If files are massive, we'll set up a dedicated upload folder for you.",
+  },
+  {
+    q: "Do you handle vertical content for TikTok and Reels?",
+    a: "Absolutely. We deliver in every ratio you need — 16:9, 9:16, and 1:1 — reframed and re-paced for each platform, not lazy crops.",
+  },
+  {
+    q: "How many revisions do I get?",
+    a: "Basic includes 1 revision, Standard includes 2, and Premium is unlimited within scope. We always aim to nail it in the first pass.",
+  },
+  {
+    q: "Do you provide music and sound effects?",
+    a: "Yes. Every project includes fully licensed music, sound design, and mastered audio at no extra cost.",
+  },
+  {
+    q: "Can we work on a monthly retainer?",
+    a: "Yes — most of our creators and brands work with us on a monthly basis. Reach out and we'll build a custom plan around your volume.",
+  },
+];
+
+function FAQ() {
+  return (
+    <Section id="faq">
+      <div className="mx-auto max-w-4xl">
+        <SectionHeader eyebrow="FAQ" title="Frequently Asked" />
+        <div className="mt-16 space-y-4">
+          {FAQS.map((f, i) => (
+            <details
+              key={i}
+              className="group glass rounded-xl p-6 transition hover:neon-glow open:neon-border"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left font-bold text-foreground">
+                <span>{f.q}</span>
+                <span className="text-primary text-2xl transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function CtaBanner() {
+  return (
+    <Section id="cta" className="py-20 md:py-24">
+      <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl neon-border bg-card/40 p-12 md:p-16 text-center">
+        <div className="absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
+        <h2 className="relative font-display text-3xl md:text-5xl font-black tracking-tight text-foreground">
+          Your next viral cut is <span className="neon-text">one edit</span> away.
+        </h2>
+        <p className="relative mt-4 text-muted-foreground max-w-2xl mx-auto">
+          Let's build a content engine that stops thumbs, earns watch-time, and turns viewers into
+          customers. Slots open weekly.
+        </p>
+        <a
+          href="#contact"
+          className="relative mt-8 inline-flex items-center gap-2 rounded-md bg-primary px-7 py-3.5 text-sm font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 transition"
+        >
+          Start Your Project →
+        </a>
+      </div>
+    </Section>
+  );
+}
+
 function BayconHome() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <main>
         <Hero />
+        <Stats />
         <Services />
+        <Process />
         <Portfolio />
+        <WhyChooseUs />
         <About />
+        <Testimonials />
         <Pricing />
+        <FAQ />
+        <CtaBanner />
         <Contact />
       </main>
       <Footer />
