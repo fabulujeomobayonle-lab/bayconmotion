@@ -34,6 +34,16 @@ type Work = {
   created_at: string;
 };
 
+type Message = {
+  id: string;
+  name: string;
+  email: string;
+  project_type: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+};
+
 const CATEGORIES = ["Talking Head", "Motion Graphics", "General Editing"] as const;
 const LONG_EXPIRY = 60 * 60 * 24 * 365 * 50; // ~50 years
 
@@ -52,6 +62,8 @@ function AdminPage() {
   const [editing, setEditing] = useState<Work | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [tab, setTab] = useState<"works" | "messages">("works");
 
   useEffect(() => {
     (async () => {
@@ -79,9 +91,38 @@ function AdminPage() {
     setLoading(false);
   }
 
+  async function loadMessages() {
+    const { data, error } = await supabase
+      .from("contact_messages")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) return toast.error(error.message);
+    setMessages((data ?? []) as unknown as Message[]);
+  }
+
   useEffect(() => {
     load();
+    loadMessages();
   }, []);
+
+  async function markRead(m: Message) {
+    const { error } = await supabase
+      .from("contact_messages")
+      .update({ is_read: !m.is_read })
+      .eq("id", m.id);
+    if (error) return toast.error(error.message);
+    loadMessages();
+  }
+
+  async function deleteMessage(id: string) {
+    if (!confirm("Delete this message?")) return;
+    const { error } = await supabase.from("contact_messages").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Deleted");
+    loadMessages();
+  }
+
+  const unreadCount = messages.filter((m) => !m.is_read).length;
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -142,6 +183,28 @@ function AdminPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-10">
+        <div className="mb-8 flex items-center gap-2 border-b border-border">
+          <button
+            onClick={() => setTab("works")}
+            className={`px-4 py-3 text-xs uppercase tracking-widest border-b-2 transition ${tab === "works" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            Works
+          </button>
+          <button
+            onClick={() => setTab("messages")}
+            className={`px-4 py-3 text-xs uppercase tracking-widest border-b-2 transition inline-flex items-center gap-2 ${tab === "messages" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            Messages
+            {unreadCount > 0 && (
+              <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5">{unreadCount}</span>
+            )}
+          </button>
+        </div>
+
+        {tab === "messages" ? (
+          <MessagesPanel messages={messages} onToggleRead={markRead} onDelete={deleteMessage} />
+        ) : (
+        <>
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="font-display text-3xl md:text-4xl font-black neon-text">Your Works</h1>
@@ -197,6 +260,8 @@ function AdminPage() {
             ))}
           </div>
         )}
+        </>
+        )}
       </main>
 
       {showForm && (
@@ -206,6 +271,61 @@ function AdminPage() {
           onSaved={() => { setShowForm(false); load(); }}
         />
       )}
+    </div>
+  );
+}
+
+function MessagesPanel({
+  messages,
+  onToggleRead,
+  onDelete,
+}: {
+  messages: Message[];
+  onToggleRead: (m: Message) => void;
+  onDelete: (id: string) => void;
+}) {
+  if (messages.length === 0) {
+    return (
+      <div className="rounded-2xl neon-border bg-card/30 p-12 text-center">
+        <p className="text-muted-foreground">No messages yet. When someone submits the contact form, it will appear here.</p>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="font-display text-3xl md:text-4xl font-black neon-text">Inbox</h1>
+        <p className="text-sm text-muted-foreground mt-1">Messages sent from your contact form.</p>
+      </div>
+      <div className="grid gap-4">
+        {messages.map((m) => (
+          <div key={m.id} className={`glass rounded-xl p-5 ${!m.is_read ? "neon-border" : ""}`}>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-foreground">{m.name}</h3>
+                  {!m.is_read && (
+                    <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary text-primary-foreground">New</span>
+                  )}
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{m.project_type}</span>
+                </div>
+                <a href={`mailto:${m.email}`} className="text-xs text-primary hover:underline">{m.email}</a>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(m.created_at).toLocaleString()}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => onToggleRead(m)} className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-md neon-border hover:bg-primary/10">
+                  {m.is_read ? "Mark unread" : "Mark read"}
+                </button>
+                <a href={`mailto:${m.email}?subject=Re: Your Baycon inquiry`} className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-md neon-border hover:bg-primary/10">Reply</a>
+                <button onClick={() => onDelete(m.id)} className="p-2 rounded-md neon-border hover:bg-primary/10 text-primary" aria-label="Delete">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground whitespace-pre-wrap">{m.message}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
