@@ -12,6 +12,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Baycon is a professional video editing brand. Talking head editing, motion graphics, and cinematic video edits that stop the scroll." },
       { property: "og:title", content: "Baycon — Professional Video Editing" },
       { property: "og:description", content: "Talking head editing, motion graphics, and high-impact video edits." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: BayconHome,
@@ -55,7 +57,8 @@ function Section({
 }) {
   const ref = useReveal<HTMLElement>();
   return (
-    <section id={id} ref={ref} className={`relative px-6 py-24 md:py-32 ${className}`}>
+    <section id={id} ref={ref} className={`cyber-section relative overflow-hidden px-6 py-24 md:py-32 ${className}`}>
+      <div className="section-scan" aria-hidden="true" />
       {children}
     </section>
   );
@@ -91,14 +94,15 @@ function Navbar() {
           : "bg-transparent"
       }`}
     >
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <a href="#top" className="font-display text-xl font-black tracking-widest neon-text">
-          BAYCON
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+        <a href="#top" className="brand-lockup group font-display text-lg font-black tracking-widest neon-text sm:text-xl">
+          <span className="brand-mark" aria-hidden="true">B</span>
+          <span>BAYCON</span>
         </a>
         <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
           {links.map((l) => (
             <li key={l.href}>
-              <a href={l.href} className="hover:text-foreground transition-colors">
+              <a href={l.href} className="nav-signal hover:text-foreground transition-colors">
                 {l.label}
               </a>
             </li>
@@ -113,7 +117,7 @@ function Navbar() {
             </a>
             <a
               href="#contact"
-              className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground neon-glow hover:brightness-110 transition"
+              className="cyber-button inline-flex items-center bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground neon-glow hover:brightness-110 transition"
             >
               Get a Quote
             </a>
@@ -130,47 +134,70 @@ function Hero() {
   return (
     <section
       id="top"
-      className="relative flex min-h-screen items-center justify-center overflow-hidden scanlines"
+      className="overdrive-hero relative flex min-h-screen items-center justify-center overflow-hidden scanlines"
     >
-      <div className="absolute inset-0 grid-bg opacity-60" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+      <div className="hero-grid absolute inset-0 grid-bg" />
+      <div className="hero-beam absolute inset-0" />
+      <div className="frame-corner frame-corner-tl" aria-hidden="true" />
+      <div className="frame-corner frame-corner-tr" aria-hidden="true" />
+      <div className="frame-corner frame-corner-bl" aria-hidden="true" />
+      <div className="frame-corner frame-corner-br" aria-hidden="true" />
 
-      {/* glow blobs */}
-      <div className="absolute -top-32 left-1/3 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
-      <div className="absolute -bottom-24 right-1/4 h-80 w-80 rounded-full bg-primary/15 blur-3xl" />
+      <div className="hero-rail hero-rail-left" aria-hidden="true">REC • 24 FPS • 4K • COLOR 12BIT</div>
+      <div className="hero-rail hero-rail-right" aria-hidden="true">BAYCON_UNIT // SIGNAL ACTIVE</div>
 
-      <div className="relative z-10 text-center px-6 max-w-5xl">
-        <div className="inline-flex items-center gap-2 mb-8 rounded-full neon-border px-4 py-1.5 text-xs uppercase tracking-[0.3em] text-muted-foreground flicker">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary neon-glow" />
-          Cinematic Video Editing
+      <div className="relative z-10 max-w-6xl px-5 text-center sm:px-6">
+        <div className="system-badge mb-6 inline-flex items-center gap-3 px-4 py-2 text-[10px] font-black uppercase tracking-[0.35em] sm:text-xs">
+          <span className="signal-dot h-2 w-2 bg-primary" />
+          System Initialized // Cinematic Video Editing
         </div>
-        <h1 className="glitch font-display text-6xl sm:text-8xl md:text-[10rem] font-black leading-none tracking-tight">
-          BAYCON
+        <div className="hero-index mb-3 font-mono text-[10px] uppercase tracking-[0.4em] text-primary">Frame 0001 — Cut beyond ordinary</div>
+        <h1 className="mega-glitch font-display text-[clamp(4.3rem,16vw,13rem)] font-black leading-[0.78]" data-text="BAYCON">
+          <span>BAYCON</span>
         </h1>
-        <p className="mt-8 text-lg md:text-2xl text-muted-foreground font-medium">
+        <p className="hero-tagline mx-auto mt-8 max-w-3xl text-base font-medium text-muted-foreground sm:text-xl md:text-2xl">
           Your Story. Our Edit. <span className="text-foreground">Unforgettable.</span>
         </p>
         <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
           <a
             href="#portfolio"
-            className="group inline-flex items-center gap-2 rounded-md bg-primary px-7 py-3.5 text-sm font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 transition"
+            className="cyber-button group inline-flex items-center gap-2 bg-primary px-7 py-3.5 text-sm font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 transition"
           >
             See Our Work
             <span className="transition-transform group-hover:translate-x-1">→</span>
           </a>
           <a
             href="#contact"
-            className="inline-flex items-center gap-2 rounded-md neon-border bg-background/40 px-7 py-3.5 text-sm font-bold uppercase tracking-widest text-foreground hover:bg-primary/10 transition"
+            className="cyber-button inline-flex items-center gap-2 neon-border bg-background/40 px-7 py-3.5 text-sm font-bold uppercase tracking-widest text-foreground hover:bg-primary/10 transition"
           >
             Get a Quote
           </a>
         </div>
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-xs uppercase tracking-[0.3em] text-muted-foreground/70">
-        Scroll ↓
+      <div className="hero-readout absolute bottom-8 left-6 hidden border-l-2 border-primary pl-4 text-left font-mono text-[9px] uppercase leading-5 tracking-[0.18em] md:block">
+        <div className="text-primary">Latency: 12ms</div>
+        <div>Status: syncing frames...</div>
+      </div>
+      <div className="hero-readout absolute bottom-8 right-6 hidden border-r-2 border-border pr-4 text-right font-mono text-[9px] uppercase leading-5 tracking-[0.18em] md:block">
+        <div className="text-muted-foreground">Est. 2024 // Baycon Unit 01</div>
+        <div>Post-production engine active</div>
+      </div>
+      <div className="scroll-command absolute bottom-7 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
+        Scroll to engage ↓
       </div>
     </section>
+  );
+}
+
+function BroadcastTicker() {
+  const line = "BAYCON // CUT • COLOR • MOTION • SOUND • RETENTION • REPEAT // ";
+  return (
+    <div className="broadcast-ticker overflow-hidden border-y border-primary bg-primary py-2 text-primary-foreground" aria-hidden="true">
+      <div className="ticker-track flex w-max whitespace-nowrap font-display text-xs font-black uppercase tracking-[0.24em]">
+        <span>{line.repeat(4)}</span><span>{line.repeat(4)}</span>
+      </div>
+    </div>
   );
 }
 
@@ -648,12 +675,12 @@ function Footer() {
 /* ------------------------------------------------------------------ */
 function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
-    <div className="text-center">
-      <div className="inline-flex items-center gap-2 rounded-full neon-border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
-        <span className="h-1 w-1 rounded-full bg-primary" />
-        {eyebrow}
+    <div className="section-heading text-center">
+      <div className="section-kicker inline-flex items-center gap-2 border border-primary px-3 py-1 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
+        <span className="signal-dot h-1.5 w-1.5 bg-primary" />
+        Module // {eyebrow}
       </div>
-      <h2 className="mt-5 text-4xl md:text-6xl font-black tracking-tight text-foreground">
+      <h2 className="kinetic-heading mt-5 text-4xl font-black text-foreground md:text-6xl">
         {title}
       </h2>
     </div>
@@ -907,10 +934,11 @@ function CtaBanner() {
 
 function BayconHome() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="baycon-overdrive min-h-screen overflow-clip bg-background text-foreground">
       <Navbar />
       <main>
         <Hero />
+        <BroadcastTicker />
         <Stats />
         <Services />
         <Process />
