@@ -61,7 +61,12 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-neon: var(--neon);
   --color-neon-soft: var(--neon-soft);
+  --color-motion-cyan: var(--motion-cyan);
+  --color-motion-gold: var(--motion-gold);
+  --color-motion-lime: var(--motion-lime);
+  --color-motion-violet: var(--motion-violet);
   --font-display: "Orbitron", "Space Grotesk", sans-serif;
+  --font-impact: "Archivo Black", "Orbitron", sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
@@ -90,6 +95,10 @@
   --ring: oklch(0.62 0.26 27);
   --neon: oklch(0.62 0.26 27);
   --neon-soft: oklch(0.7 0.22 27);
+  --motion-cyan: oklch(0.83 0.14 196);
+  --motion-gold: oklch(0.86 0.18 88);
+  --motion-lime: oklch(0.86 0.21 128);
+  --motion-violet: oklch(0.66 0.22 315);
   --chart-1: oklch(0.62 0.26 27);
   --chart-2: oklch(0.7 0.22 27);
   --chart-3: oklch(0.5 0.2 27);
@@ -418,5 +427,292 @@
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+/* === Kinetic Cinematic Flux === */
+@keyframes scene-word-flight {
+  0% { transform: translate3d(-22vw, 12vh, 0) rotate(-9deg); opacity: 0; }
+  22% { opacity: 0.11; }
+  78% { opacity: 0.06; }
+  100% { transform: translate3d(32vw, -18vh, 0) rotate(7deg); opacity: 0; }
+}
+
+@keyframes scene-word-flight-reverse {
+  0% { transform: translate3d(28vw, -10vh, 0) rotate(8deg); opacity: 0; }
+  25%, 70% { opacity: 0.05; }
+  100% { transform: translate3d(-35vw, 18vh, 0) rotate(-8deg); opacity: 0; }
+}
+
+@keyframes interlude-rush {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes outline-cross {
+  from { transform: translateX(45vw) rotate(3deg); }
+  to { transform: translateX(-115vw) rotate(-3deg); }
+}
+
+@keyframes chapter-arrive {
+  0% { transform: translateY(12vh) scale(0.94); opacity: 0.3; }
+  35%, 70% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-7vh) scale(0.98); opacity: 0.65; }
+}
+
+@keyframes chapter-title-sweep {
+  from { transform: translateX(-12vw); }
+  to { transform: translateX(10vw); }
+}
+
+@keyframes ghost-drift {
+  from { transform: translateX(28vw) rotate(4deg); }
+  to { transform: translateX(-22vw) rotate(-3deg); }
+}
+
+@keyframes media-lift {
+  from { transform: translateY(8rem) rotate(2deg); opacity: 0; }
+  38%, 72% { transform: translateY(0) rotate(0); opacity: 1; }
+  to { transform: translateY(-2rem) rotate(-1deg); opacity: 0.82; }
+}
+
+@keyframes orbit-spin {
+  to { transform: rotate(360deg); }
+}
+
+.motion-scene {
+  --scene-accent: var(--primary);
+  --scene-wash: oklch(0.62 0.26 27 / 0.05);
+  background-image: radial-gradient(circle at 82% 22%, var(--scene-wash), transparent 31%);
+  transition: background-color 600ms ease;
+}
+
+#services { --scene-accent: var(--motion-cyan); --scene-wash: oklch(0.83 0.14 196 / 0.07); }
+#process { --scene-accent: var(--motion-gold); --scene-wash: oklch(0.86 0.18 88 / 0.06); }
+#portfolio { --scene-accent: var(--motion-violet); --scene-wash: oklch(0.66 0.22 315 / 0.07); }
+#why { --scene-accent: var(--motion-lime); --scene-wash: oklch(0.86 0.21 128 / 0.05); }
+#about { --scene-accent: var(--motion-cyan); --scene-wash: oklch(0.83 0.14 196 / 0.06); }
+#testimonials { --scene-accent: var(--motion-gold); --scene-wash: oklch(0.86 0.18 88 / 0.05); }
+
+.scene-word {
+  position: absolute;
+  z-index: -1;
+  white-space: nowrap;
+  pointer-events: none;
+  text-transform: uppercase;
+  font-family: var(--font-impact);
+  font-size: clamp(7rem, 19vw, 19rem);
+  line-height: 0.72;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in oklab, var(--scene-accent) 45%, transparent);
+  opacity: 0;
+}
+
+.scene-word-front { top: 10%; left: 0; animation: scene-word-flight linear both; }
+.scene-word-back { right: 0; bottom: 4%; animation: scene-word-flight-reverse linear both; }
+
+@supports (animation-timeline: view()) {
+  .scene-word-front,
+  .scene-word-back {
+    animation-timeline: view(block);
+    animation-range: entry 0% exit 100%;
+  }
+}
+
+.motion-interlude {
+  position: relative;
+  z-index: 2;
+  height: clamp(8rem, 16vw, 14rem);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  border-block: 1px solid color-mix(in oklab, var(--primary) 45%, var(--border));
+  background: var(--primary);
+  color: var(--primary-foreground);
+  transform: rotate(-1.25deg) scale(1.02);
+}
+
+.motion-interlude-track {
+  display: flex;
+  width: max-content;
+  white-space: nowrap;
+  font-family: var(--font-impact);
+  font-size: clamp(2.8rem, 8vw, 8rem);
+  line-height: 1;
+  text-transform: uppercase;
+  animation: interlude-rush 18s linear infinite;
+}
+
+.motion-interlude-track span { padding-right: 0.35em; }
+.motion-interlude-reverse { transform: rotate(1.25deg) scale(1.02); background: var(--foreground); color: var(--background); }
+.motion-interlude-reverse .motion-interlude-track { animation-direction: reverse; animation-duration: 23s; }
+.motion-interlude-outline {
+  position: absolute;
+  white-space: nowrap;
+  font-family: var(--font-impact);
+  font-size: clamp(5rem, 15vw, 14rem);
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in oklab, currentColor 55%, transparent);
+  opacity: 0.45;
+  animation: outline-cross 8s ease-in-out infinite alternate;
+}
+
+.portfolio-stage { isolation: isolate; }
+.portfolio-chapter {
+  --chapter-accent: var(--primary);
+  position: relative;
+  min-height: min(90svh, 64rem);
+  overflow: hidden;
+  padding: clamp(2rem, 6vw, 6rem);
+  border-block: 1px solid color-mix(in oklab, var(--chapter-accent) 38%, var(--border));
+  background:
+    linear-gradient(115deg, color-mix(in oklab, var(--chapter-accent) 10%, var(--background)), var(--background) 52%),
+    var(--background);
+  box-shadow: inset 0 0 8rem color-mix(in oklab, var(--chapter-accent) 7%, transparent);
+  animation: chapter-arrive linear both;
+}
+
+.portfolio-motion { --chapter-accent: var(--motion-violet); }
+.portfolio-talking { --chapter-accent: var(--motion-cyan); }
+.portfolio-random { --chapter-accent: var(--motion-gold); }
+.portfolio-business { --chapter-accent: var(--motion-lime); }
+
+@supports (animation-timeline: view()) {
+  .portfolio-chapter {
+    animation-timeline: view(block);
+    animation-range: entry 0% exit 100%;
+  }
+}
+
+.portfolio-chapter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.16;
+  background-image:
+    linear-gradient(var(--chapter-accent) 1px, transparent 1px),
+    linear-gradient(90deg, var(--chapter-accent) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+  mask-image: linear-gradient(90deg, transparent, black, transparent);
+}
+
+.portfolio-chapter-head { position: relative; z-index: 2; max-width: 68rem; }
+.portfolio-chapter-number { font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; color: var(--chapter-accent); }
+.portfolio-chapter-title {
+  max-width: 13ch;
+  margin-top: 1rem;
+  font-family: var(--font-impact);
+  font-size: clamp(3.2rem, 9vw, 9rem);
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  color: var(--foreground);
+  text-shadow: 0.035em 0.035em 0 color-mix(in oklab, var(--chapter-accent) 65%, transparent);
+  animation: chapter-title-sweep linear both;
+}
+
+@supports (animation-timeline: view()) {
+  .portfolio-chapter-title {
+    animation-timeline: view(block);
+    animation-range: entry 0% cover 60%;
+  }
+}
+
+.portfolio-chapter-head > p { margin-top: 1.5rem; max-width: 38rem; color: var(--muted-foreground); line-height: 1.7; }
+.portfolio-ghost {
+  position: absolute;
+  top: 5%;
+  right: -12%;
+  white-space: nowrap;
+  font-family: var(--font-impact);
+  font-size: clamp(8rem, 22vw, 24rem);
+  line-height: 0.75;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in oklab, var(--chapter-accent) 28%, transparent);
+  opacity: 0.5;
+  animation: ghost-drift linear both;
+}
+
+@supports (animation-timeline: view()) {
+  .portfolio-ghost {
+    animation-timeline: view(block);
+    animation-range: entry 0% exit 100%;
+  }
+}
+
+.portfolio-orbit {
+  position: absolute;
+  top: clamp(2rem, 5vw, 5rem);
+  right: clamp(2rem, 6vw, 6rem);
+  width: clamp(4rem, 9vw, 8rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--chapter-accent);
+  border-radius: 50%;
+  animation: orbit-spin 12s linear infinite;
+}
+
+.portfolio-orbit::before { content: ""; position: absolute; top: -0.25rem; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--chapter-accent); box-shadow: 0 0 1rem var(--chapter-accent); }
+.portfolio-orbit span { font-family: var(--font-impact); font-size: clamp(1.4rem, 3vw, 3rem); color: var(--foreground); animation: orbit-spin 12s linear infinite reverse; }
+.portfolio-rail { position: relative; z-index: 2; overflow: hidden; margin-block: clamp(2rem, 5vw, 4rem); border-block: 1px solid color-mix(in oklab, var(--chapter-accent) 45%, transparent); padding-block: 0.65rem; color: var(--chapter-accent); }
+.portfolio-rail-track { display: flex; width: max-content; white-space: nowrap; font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; animation: ticker-run 24s linear infinite; }
+.portfolio-rail-track span { padding-right: 2rem; }
+.portfolio-talking .portfolio-rail-track,
+.portfolio-business .portfolio-rail-track { animation-direction: reverse; }
+
+.portfolio-media-grid { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1rem, 2vw, 2rem); }
+.portfolio-media {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--chapter-accent) 50%, var(--border));
+  background: color-mix(in oklab, var(--card) 92%, var(--chapter-accent));
+  clip-path: polygon(1.2rem 0, 100% 0, 100% calc(100% - 1.2rem), calc(100% - 1.2rem) 100%, 0 100%, 0 1.2rem);
+  box-shadow: 0 1.5rem 5rem color-mix(in oklab, var(--chapter-accent) 12%, transparent);
+  animation: media-lift linear both;
+}
+
+@supports (animation-timeline: view()) {
+  .portfolio-media {
+    animation-timeline: view(block);
+    animation-range: entry 0% cover 55%;
+  }
+}
+
+.portfolio-media:nth-child(even) { margin-top: clamp(2rem, 6vw, 7rem); }
+.portfolio-media::after { content: ""; position: absolute; inset: 0; pointer-events: none; border: 0 solid var(--chapter-accent); transition: border-width 220ms ease; }
+.portfolio-media:hover::after { border-width: 3px; }
+.portfolio-media-index { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 4; display: grid; place-items: center; width: 2rem; height: 2rem; background: var(--chapter-accent); color: var(--background); font-family: var(--font-mono); font-size: 0.58rem; font-weight: 700; }
+.portfolio-media-copy { min-height: 6.25rem; padding: 1rem 1.25rem 1.25rem; border-top: 1px solid color-mix(in oklab, var(--chapter-accent) 35%, var(--border)); }
+.portfolio-media-copy > span { color: var(--chapter-accent); }
+.portfolio-empty { position: relative; z-index: 2; min-height: 13rem; display: grid; align-content: center; justify-items: start; padding: 2rem; border: 1px dashed color-mix(in oklab, var(--chapter-accent) 50%, var(--border)); background: color-mix(in oklab, var(--chapter-accent) 4%, transparent); }
+.portfolio-empty::before { content: "+"; position: absolute; right: 2rem; font-family: var(--font-impact); font-size: 8rem; color: color-mix(in oklab, var(--chapter-accent) 24%, transparent); }
+
+@media (max-width: 767px) {
+  .motion-interlude { height: 7rem; }
+  .portfolio-chapter { min-height: auto; padding: 4.5rem 1rem 3rem; }
+  .portfolio-chapter-title { font-size: clamp(2.8rem, 15vw, 5rem); }
+  .portfolio-orbit { top: 1.25rem; right: 1rem; width: 3.75rem; }
+  .portfolio-media-grid { grid-template-columns: 1fr; }
+  .portfolio-media:nth-child(even) { margin-top: 0; }
+  .portfolio-ghost { top: 20%; font-size: 8rem; }
+  .scene-word { font-size: 7rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-word { display: none; }
+  .motion-interlude-track,
+  .motion-interlude-outline,
+  .portfolio-chapter,
+  .portfolio-chapter-title,
+  .portfolio-ghost,
+  .portfolio-orbit,
+  .portfolio-orbit span,
+  .portfolio-rail-track,
+  .portfolio-media {
+    animation: none !important;
+    transform: none !important;
   }
 }
