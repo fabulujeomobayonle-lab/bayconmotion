@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 type Work = {
   id: string;
   title: string;
-  category: "Talking Head" | "Motion Graphics" | "General Editing";
+  category: "Talking Head" | "Motion Graphics" | "Random Edit" | "Business Edit" | "General Editing";
   description: string | null;
   status: "draft" | "published";
   embed_url: string | null;
@@ -44,7 +44,7 @@ type Message = {
   created_at: string;
 };
 
-const CATEGORIES = ["Talking Head", "Motion Graphics", "General Editing"] as const;
+const CATEGORIES = ["Motion Graphics", "Talking Head", "Random Edit", "Business Edit"] as const;
 const LONG_EXPIRY = 60 * 60 * 24 * 365 * 50; // ~50 years
 
 const workSchema = z.object({
@@ -425,7 +425,7 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Category">
-              <select name="category" required defaultValue={work?.category ?? "General Editing"} className={inputCls}>
+              <select name="category" required defaultValue={work?.category === "General Editing" ? "Random Edit" : work?.category ?? "Random Edit"} className={inputCls}>
                 {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>
             </Field>

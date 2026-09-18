@@ -57,8 +57,10 @@ function Section({
 }) {
   const ref = useReveal<HTMLElement>();
   return (
-    <section id={id} ref={ref} className={`cyber-section relative overflow-hidden px-6 py-24 md:py-32 ${className}`}>
+    <section id={id} ref={ref} data-motion-label={id?.replaceAll("-", " ")} className={`cyber-section motion-scene relative overflow-hidden px-6 py-24 md:py-32 ${className}`}>
       <div className="section-scan" aria-hidden="true" />
+      <div className="scene-word scene-word-front" aria-hidden="true">{id}</div>
+      <div className="scene-word scene-word-back" aria-hidden="true">{id}</div>
       {children}
     </section>
   );
@@ -292,6 +294,122 @@ type PublishedWork = {
   thumbnail_url: string | null;
 };
 
+type PortfolioCategory = {
+  key: "Motion Graphics" | "Talking Head" | "Random Edit" | "Business Edit";
+  number: string;
+  title: string;
+  strapline: string;
+  rail: string;
+  aliases: string[];
+  tone: string;
+};
+
+const PORTFOLIO_CATEGORIES: PortfolioCategory[] = [
+  {
+    key: "Motion Graphics",
+    number: "01",
+    title: "Motion Graphics",
+    strapline: "Kinetic type, animated systems, compositing, and visual worlds built frame by frame.",
+    rail: "2D ANIMATION • KINETIC TYPE • COMPOSITING • VISUAL SYSTEMS • ",
+    aliases: ["Motion Graphics"],
+    tone: "motion",
+  },
+  {
+    key: "Talking Head",
+    number: "02",
+    title: "Talking Head Videos",
+    strapline: "Personality-first edits with sharp pacing, clean captions, and polished narrative clarity.",
+    rail: "STORY • CAPTIONS • B-ROLL • RETENTION • PERSONAL BRAND • ",
+    aliases: ["Talking Head", "Talking Head Videos", "Talking Head Editing"],
+    tone: "talking",
+  },
+  {
+    key: "Random Edit",
+    number: "03",
+    title: "Random Edit",
+    strapline: "No fixed rules. Experimental cuts, unexpected rhythms, and chaos shaped with intention.",
+    rail: "REMIX • RHYTHM • EXPERIMENT • CHAOS BY DESIGN • REPLAY • ",
+    aliases: ["Random Edit", "General Editing", "Video Editing General"],
+    tone: "random",
+  },
+  {
+    key: "Business Edit",
+    number: "04",
+    title: "Business Edit",
+    strapline: "Refined corporate storytelling designed to build trust, explain value, and move audiences.",
+    rail: "BRAND FILM • PRODUCT • CASE STUDY • CONVERSION • BUSINESS • ",
+    aliases: ["Business Edit", "Business Editing"],
+    tone: "business",
+  },
+];
+
+function PortfolioMedia({ item, index }: { item: PublishedWork; index: number }) {
+  return (
+    <article className="portfolio-media group" style={{ "--media-index": index } as React.CSSProperties}>
+      <div className="portfolio-media-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</div>
+      <div className="relative aspect-video w-full overflow-hidden bg-background">
+        {item.embed_url ? (
+          <iframe
+            src={toEmbedUrl(item.embed_url)}
+            title={item.title}
+            className="absolute inset-0 h-full w-full"
+            frameBorder={0}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        ) : item.video_url ? (
+          <video
+            src={item.video_url}
+            poster={item.thumbnail_url ?? undefined}
+            controls
+            preload="metadata"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : item.thumbnail_url ? (
+          <img src={item.thumbnail_url} alt={item.title} className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center text-muted-foreground" aria-label="Video preview unavailable">
+            <span className="font-display text-5xl">▶</span>
+          </div>
+        )}
+      </div>
+      <div className="portfolio-media-copy">
+        <span className="font-mono text-[9px] uppercase text-primary">Cut_{String(index + 1).padStart(2, "0")}</span>
+        <h4 className="mt-1 truncate font-display text-base font-black uppercase text-foreground">{item.title}</h4>
+        {item.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>}
+      </div>
+    </article>
+  );
+}
+
+function PortfolioChapter({ category, works }: { category: PortfolioCategory; works: PublishedWork[] }) {
+  const rail = category.rail.repeat(4);
+  return (
+    <section className={`portfolio-chapter portfolio-${category.tone}`} aria-labelledby={`portfolio-${category.tone}`}>
+      <div className="portfolio-ghost" aria-hidden="true">{category.title}</div>
+      <div className="portfolio-orbit" aria-hidden="true"><span>{category.number}</span></div>
+      <div className="portfolio-chapter-head">
+        <div className="portfolio-chapter-number">Chapter {category.number}</div>
+        <h3 id={`portfolio-${category.tone}`} className="portfolio-chapter-title">{category.title}</h3>
+        <p>{category.strapline}</p>
+      </div>
+      <div className="portfolio-rail" aria-hidden="true">
+        <div className="portfolio-rail-track"><span>{rail}</span><span>{rail}</span></div>
+      </div>
+      {works.length > 0 ? (
+        <div className="portfolio-media-grid">
+          {works.map((item, index) => <PortfolioMedia key={item.id} item={item} index={index} />)}
+        </div>
+      ) : (
+        <div className="portfolio-empty">
+          <span className="font-mono text-[10px] uppercase text-muted-foreground">Awaiting transmission</span>
+          <p className="mt-2 text-sm text-muted-foreground">New {category.title.toLowerCase()} work will appear here.</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function Portfolio() {
   const [works, setWorks] = useState<PublishedWork[]>([]);
   const [loading, setLoading] = useState(true);
@@ -310,63 +428,37 @@ function Portfolio() {
   }, []);
 
   return (
-    <Section id="portfolio" className="bg-card/30">
-      <div className="mx-auto max-w-7xl">
-        <SectionHeader eyebrow="Portfolio" title="Recent Cuts" />
+    <Section id="portfolio" className="portfolio-stage bg-card/30 px-0">
+      <div className="mx-auto max-w-[100rem]">
+        <div className="px-6">
+          <SectionHeader eyebrow="Portfolio" title="Four Worlds. One Edit Suite." />
+          <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-relaxed text-muted-foreground">Explore the work by style. Every chapter moves differently because every story asks for a different rhythm.</p>
+        </div>
         {loading ? (
           <p className="mt-16 text-center text-sm text-muted-foreground">Loading works…</p>
-        ) : works.length === 0 ? (
-          <div className="mt-16 rounded-2xl neon-border bg-background/40 p-12 text-center">
-            <p className="text-muted-foreground">No published works yet. <a href="/admin" className="text-primary hover:underline">Sign in to upload</a>.</p>
-          </div>
         ) : (
-          <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {works.map((item) => (
-              <div
-                key={item.id}
-                className="group relative rounded-xl neon-border bg-black overflow-hidden transition-all duration-300 hover:neon-glow"
-              >
-                <div className="absolute top-3 left-3 z-10 rounded-full bg-primary/90 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                  {item.category}
-                </div>
-                <div className="relative w-full aspect-video bg-black">
-                  {item.embed_url ? (
-                    <iframe
-                      src={toEmbedUrl(item.embed_url)}
-                      title={item.title}
-                      className="absolute inset-0 h-full w-full"
-                      frameBorder={0}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : item.video_url ? (
-                    <video
-                      src={item.video_url}
-                      poster={item.thumbnail_url ?? undefined}
-                      controls
-                      preload="metadata"
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                  ) : item.thumbnail_url ? (
-                    <img src={item.thumbnail_url} alt={item.title} className="absolute inset-0 h-full w-full object-cover" />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-xs uppercase tracking-widest">
-                      <span className="text-3xl">▶</span>
-                    </div>
-                  )}
-                </div>
-                {(item.title || item.description) && (
-                  <div className="p-4">
-                    <h3 className="font-bold text-foreground truncate">{item.title}</h3>
-                    {item.description && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{item.description}</p>}
-                  </div>
-                )}
-              </div>
+          <div className="mt-20 space-y-8 md:space-y-14">
+            {PORTFOLIO_CATEGORIES.map((category) => (
+              <PortfolioChapter
+                key={category.key}
+                category={category}
+                works={works.filter((work) => category.aliases.includes(work.category))}
+              />
             ))}
           </div>
         )}
       </div>
     </Section>
+  );
+}
+
+function MotionInterlude({ words, reverse = false }: { words: string; reverse?: boolean }) {
+  const line = `${words} • ${words} • ${words} • `;
+  return (
+    <div className={`motion-interlude ${reverse ? "motion-interlude-reverse" : ""}`} aria-hidden="true">
+      <div className="motion-interlude-track"><span>{line}</span><span>{line}</span></div>
+      <div className="motion-interlude-outline">{words}</div>
+    </div>
   );
 }
 
@@ -940,11 +1032,15 @@ function BayconHome() {
         <Hero />
         <BroadcastTicker />
         <Stats />
+        <MotionInterlude words="IDEAS IN MOTION" />
         <Services />
         <Process />
+        <MotionInterlude words="EVERY FRAME HAS ENERGY" reverse />
         <Portfolio />
+        <MotionInterlude words="CUT LOUDER" />
         <WhyChooseUs />
         <About />
+        <MotionInterlude words="STORIES THAT MOVE" reverse />
         <Testimonials />
         <Pricing />
         <FAQ />
