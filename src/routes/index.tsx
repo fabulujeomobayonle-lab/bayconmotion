@@ -344,11 +344,13 @@ const PORTFOLIO_CATEGORIES: PortfolioCategory[] = [
 ];
 
 function PortfolioMedia({ item, index }: { item: PublishedWork; index: number }) {
+  const [showEmbed, setShowEmbed] = useState(!item.thumbnail_url);
+
   return (
     <article className="portfolio-media group" style={{ "--media-index": index } as React.CSSProperties}>
       <div className="portfolio-media-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</div>
       <div className="relative aspect-video w-full overflow-hidden bg-background">
-        {item.embed_url ? (
+        {item.embed_url && showEmbed ? (
           <iframe
             src={toEmbedUrl(item.embed_url)}
             title={item.title}
@@ -357,6 +359,18 @@ function PortfolioMedia({ item, index }: { item: PublishedWork; index: number })
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
+        ) : item.embed_url && item.thumbnail_url ? (
+          <button
+            type="button"
+            className="portfolio-thumbnail absolute inset-0 h-full w-full"
+            onClick={() => setShowEmbed(true)}
+            aria-label={`Play ${item.title}`}
+          >
+            <img src={item.thumbnail_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <span className="portfolio-thumbnail-shade" aria-hidden="true" />
+            <span className="portfolio-play" aria-hidden="true">▶</span>
+            <span className="portfolio-play-label">Play video</span>
+          </button>
         ) : item.video_url ? (
           <video
             src={item.video_url}

@@ -684,6 +684,12 @@
 .portfolio-media:nth-child(even) { margin-top: clamp(2rem, 6vw, 7rem); }
 .portfolio-media::after { content: ""; position: absolute; inset: 0; pointer-events: none; border: 0 solid var(--chapter-accent); transition: border-width 220ms ease; }
 .portfolio-media:hover::after { border-width: 3px; }
+.portfolio-thumbnail { border: 0; padding: 0; cursor: pointer; color: var(--foreground); background: var(--background); }
+.portfolio-thumbnail-shade { position: absolute; inset: 0; background: linear-gradient(to top, color-mix(in oklab, var(--background) 72%, transparent), transparent 65%); transition: background-color 220ms ease; }
+.portfolio-thumbnail:hover .portfolio-thumbnail-shade { background-color: color-mix(in oklab, var(--chapter-accent) 12%, transparent); }
+.portfolio-play { position: absolute; inset: 50% auto auto 50%; display: grid; place-items: center; width: 3.75rem; height: 3.75rem; translate: -50% -50%; background: var(--chapter-accent); color: var(--background); font-size: 1.25rem; box-shadow: 0 0 2rem color-mix(in oklab, var(--chapter-accent) 70%, transparent); transition: scale 220ms ease; }
+.portfolio-thumbnail:hover .portfolio-play { scale: 1.08; }
+.portfolio-play-label { position: absolute; bottom: 1rem; left: 1rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; text-transform: uppercase; }
 .portfolio-media-index { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 4; display: grid; place-items: center; width: 2rem; height: 2rem; background: var(--chapter-accent); color: var(--background); font-family: var(--font-mono); font-size: 0.58rem; font-weight: 700; }
 .portfolio-media-copy { min-height: 6.25rem; padding: 1rem 1.25rem 1.25rem; border-top: 1px solid color-mix(in oklab, var(--chapter-accent) 35%, var(--border)); }
 .portfolio-media-copy > span { color: var(--chapter-accent); }
