@@ -460,12 +460,13 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
             </label>
           </Field>
 
-          <Field label={`Thumbnail image (optional${work?.thumbnail_url ? ", current file kept if blank" : ""})`}>
+          <Field label={`Video thumbnail (optional${work?.thumbnail_url ? ", current image kept if blank" : ""})`}>
             <label className="flex items-center justify-center gap-2 rounded-md neon-border bg-background/40 px-4 py-3 text-xs uppercase tracking-widest cursor-pointer hover:bg-primary/10">
               <Upload className="h-4 w-4" />
-              {thumbFile ? thumbFile.name : "Choose image (≤10 MB)"}
+              {thumbFile ? thumbFile.name : "Choose thumbnail image (≤10 MB)"}
               <input type="file" accept="image/*" className="hidden" onChange={(e) => setThumbFile(e.target.files?.[0] ?? null)} />
             </label>
+            <p className="mt-1 text-[10px] text-muted-foreground">Shown as the cover for a YouTube or TikTok link until a visitor presses play.</p>
           </Field>
 
           {progress && <p className="text-xs text-muted-foreground">{progress}</p>}
