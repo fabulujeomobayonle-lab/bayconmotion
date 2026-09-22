@@ -86,7 +86,6 @@ function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Work | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [reviews, setReviews] = useState<ClientReview[]>([]);
   const [editingReview, setEditingReview] = useState<ClientReview | null>(null);
@@ -117,20 +116,6 @@ function AdminPage() {
     if (error) return toast.error(error.message);
     loadReviews();
   }
-
-  useEffect(() => {
-    (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", u.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-      setIsAdmin(!!data);
-    })();
-  }, []);
 
   async function load() {
     setLoading(true);
@@ -178,8 +163,8 @@ function AdminPage() {
 
   const unreadCount = messages.filter((m) => !m.is_read).length;
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
+  function handleSignOut() {
+    localStorage.removeItem("baycon_admin");
     navigate({ to: "/auth" });
   }
 
@@ -200,22 +185,6 @@ function AdminPage() {
     if (error) return toast.error(error.message);
     toast.success(next === "published" ? "Published" : "Moved to draft");
     load();
-  }
-
-  if (isAdmin === false) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 text-center">
-        <div className="max-w-md">
-          <h1 className="text-2xl font-bold neon-text">Not an admin</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Your account is signed in but doesn't have admin permissions. Ask an existing admin to grant you access.
-          </p>
-          <button onClick={handleSignOut} className="mt-6 rounded-md neon-border px-5 py-2 text-xs uppercase tracking-widest hover:bg-primary/10">
-            Sign out
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (
