@@ -339,6 +339,14 @@ function AdminPage() {
           onSaved={() => { setShowForm(false); load(); }}
         />
       )}
+
+      {showReviewForm && (
+        <ReviewForm
+          review={editingReview}
+          onClose={() => setShowReviewForm(false)}
+          onSaved={() => { setShowReviewForm(false); loadReviews(); }}
+        />
+      )}
     </div>
   );
 }
