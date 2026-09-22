@@ -66,7 +66,7 @@ const reviewSchema = z.object({
   quote: z.string().trim().min(1, "Review text is required").max(1000),
   rating: z.coerce.number().int().min(1).max(5),
   status: z.enum(["draft", "published"]),
-  embed_url: z.string().trim().url("Must be a valid URL").max(500).optional().or(z.literal("")),
+  embed_url: z.string().trim().max(500).optional().or(z.literal("")),
 });
 
 const CATEGORIES = ["Motion Graphics", "Talking Head", "Random Edit", "Business Edit"] as const;
@@ -77,7 +77,7 @@ const workSchema = z.object({
   category: z.enum(CATEGORIES),
   description: z.string().trim().max(1000).optional().or(z.literal("")),
   status: z.enum(["draft", "published"]),
-  embed_url: z.string().trim().url("Must be a valid URL").max(500).optional().or(z.literal("")),
+  embed_url: z.string().trim().max(500).optional().or(z.literal("")),
 });
 
 function AdminPage() {
@@ -517,15 +517,15 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
             <textarea name="description" rows={3} maxLength={1000} defaultValue={work?.description ?? ""} className={inputCls + " resize-none"} />
           </Field>
 
-          <Field label="YouTube / TikTok Embed URL (optional)">
+          <Field label="Video Link (YouTube, TikTok, Vimeo, etc.) (optional)">
             <input
               name="embed_url"
-              type="url"
+              type="text"
               defaultValue={work?.embed_url ?? ""}
-              placeholder="https://www.youtube.com/embed/VIDEO_ID"
+              placeholder="e.g. https://www.youtube.com/watch?v=..."
               className={inputCls}
             />
-            <p className="mt-1 text-[10px] text-muted-foreground">YouTube: <code>https://www.youtube.com/embed/VIDEO_ID</code> · TikTok: <code>https://www.tiktok.com/embed/v2/VIDEO_ID</code></p>
+            <p className="mt-1 text-[10px] text-muted-foreground">Just paste the regular video link (YouTube, TikTok, etc.). We'll handle the rest.</p>
           </Field>
 
           <Field label={`Video file (optional${work?.video_url ? ", current file kept if blank" : ""})`}>
@@ -769,8 +769,8 @@ function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null;
             </Field>
           </div>
 
-          <Field label="YouTube / TikTok video link (optional)">
-            <input name="embed_url" type="url" defaultValue={review?.embed_url ?? ""} placeholder="https://www.youtube.com/watch?v=VIDEO_ID" className={inputCls} />
+          <Field label="Video Link (YouTube, TikTok, Vimeo, etc.) (optional)">
+            <input name="embed_url" type="text" defaultValue={review?.embed_url ?? ""} placeholder="e.g. https://www.youtube.com/watch?v=..." className={inputCls} />
           </Field>
 
           <Field label={`Video file (optional${review?.video_url ? ", current file kept if blank" : ""})`}>
