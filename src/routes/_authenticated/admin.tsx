@@ -88,7 +88,35 @@ function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [tab, setTab] = useState<"works" | "messages">("works");
+  const [reviews, setReviews] = useState<ClientReview[]>([]);
+  const [editingReview, setEditingReview] = useState<ClientReview | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [tab, setTab] = useState<"works" | "reviews" | "messages">("works");
+
+  async function loadReviews() {
+    const { data, error } = await supabase
+      .from("client_reviews")
+      .select("*")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false });
+    if (error) return toast.error(error.message);
+    setReviews((data ?? []) as unknown as ClientReview[]);
+  }
+
+  async function deleteReview(id: string) {
+    if (!confirm("Delete this client review?")) return;
+    const { error } = await supabase.from("client_reviews").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Deleted");
+    loadReviews();
+  }
+
+  async function toggleReviewStatus(r: ClientReview) {
+    const next = r.status === "published" ? "draft" : "published";
+    const { error } = await supabase.from("client_reviews").update({ status: next }).eq("id", r.id);
+    if (error) return toast.error(error.message);
+    loadReviews();
+  }
 
   useEffect(() => {
     (async () => {
