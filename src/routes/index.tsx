@@ -937,28 +937,125 @@ const TESTIMONIALS = [
   },
 ];
 
+type ClientReview = {
+  id: string;
+  client_name: string;
+  client_role: string | null;
+  quote: string;
+  rating: number;
+  project_title: string | null;
+  embed_url: string | null;
+  video_url: string | null;
+  thumbnail_url: string | null;
+};
+
+function ReviewMedia({ review }: { review: ClientReview }) {
+  const [showEmbed, setShowEmbed] = useState(!review.thumbnail_url);
+  const hasMedia = review.embed_url || review.video_url || review.thumbnail_url;
+  if (!hasMedia) return null;
+  return (
+    <div className="relative aspect-video w-full overflow-hidden rounded-xl neon-border bg-background">
+      {review.embed_url && showEmbed ? (
+        <iframe
+          src={toEmbedUrl(review.embed_url)}
+          title={review.project_title ?? review.client_name}
+          className="absolute inset-0 h-full w-full"
+          frameBorder={0}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      ) : review.embed_url && review.thumbnail_url ? (
+        <button
+          type="button"
+          className="portfolio-thumbnail absolute inset-0 h-full w-full"
+          onClick={() => setShowEmbed(true)}
+          aria-label={`Play ${review.project_title ?? review.client_name}`}
+        >
+          <img src={review.thumbnail_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <span className="portfolio-thumbnail-shade" aria-hidden="true" />
+          <span className="portfolio-play" aria-hidden="true">▶</span>
+          <span className="portfolio-play-label">Play video</span>
+        </button>
+      ) : review.video_url ? (
+        <video
+          src={review.video_url}
+          poster={review.thumbnail_url ?? undefined}
+          controls
+          preload="metadata"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : review.thumbnail_url ? (
+        <img src={review.thumbnail_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : null}
+    </div>
+  );
+}
+
 function Testimonials() {
+  const [reviews, setReviews] = useState<ClientReview[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("client_reviews")
+      .select("id, client_name, client_role, quote, rating, project_title, embed_url, video_url, thumbnail_url")
+      .eq("status", "published")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false })
+      .then(({ data }: { data: ClientReview[] | null }) => {
+        setReviews((data ?? []) as ClientReview[]);
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <Section id="testimonials" className="bg-card/30">
       <div className="mx-auto max-w-7xl">
-        <SectionHeader eyebrow="Testimonials" title="What Clients Say" />
-        <div className="mt-16 grid gap-6 md:grid-cols-3">
-          {TESTIMONIALS.map((t) => (
-            <figure
-              key={t.name}
-              className="glass rounded-2xl p-8 flex flex-col transition hover:-translate-y-2 hover:neon-glow"
-            >
-              <div className="text-primary text-3xl leading-none">"</div>
-              <blockquote className="mt-2 text-sm leading-relaxed text-muted-foreground flex-1">
-                {t.quote}
-              </blockquote>
-              <figcaption className="mt-6 border-t border-border pt-4">
-                <div className="text-sm font-bold text-foreground">{t.name}</div>
-                <div className="text-xs text-muted-foreground">{t.role}</div>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+        <SectionHeader eyebrow="Client Work & Reviews" title="What Clients Say" />
+        <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-relaxed text-muted-foreground">
+          Real projects we delivered, straight from the people we delivered them for.
+        </p>
+
+        {loading ? (
+          <p className="mt-16 text-center text-sm text-muted-foreground">Loading client work…</p>
+        ) : reviews.length > 0 ? (
+          <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {reviews.map((r) => (
+              <figure key={r.id} className="glass flex flex-col rounded-2xl p-6 transition hover:-translate-y-2 hover:neon-glow">
+                <ReviewMedia review={r} />
+                {r.project_title && (
+                  <h3 className="mt-5 font-display text-base font-black uppercase text-foreground">{r.project_title}</h3>
+                )}
+                <div className="mt-3 text-primary text-sm tracking-widest" aria-label={`${r.rating} out of 5`}>
+                  {"★".repeat(r.rating)}<span className="text-muted-foreground">{"★".repeat(5 - r.rating)}</span>
+                </div>
+                <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{r.quote}</blockquote>
+                <figcaption className="mt-6 border-t border-border pt-4">
+                  <div className="text-sm font-bold text-foreground">{r.client_name}</div>
+                  {r.client_role && <div className="text-xs text-muted-foreground">{r.client_role}</div>}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-16 grid gap-6 md:grid-cols-3">
+            {TESTIMONIALS.map((t) => (
+              <figure
+                key={t.name}
+                className="glass rounded-2xl p-8 flex flex-col transition hover:-translate-y-2 hover:neon-glow"
+              >
+                <div className="text-primary text-3xl leading-none">"</div>
+                <blockquote className="mt-2 text-sm leading-relaxed text-muted-foreground flex-1">
+                  {t.quote}
+                </blockquote>
+                <figcaption className="mt-6 border-t border-border pt-4">
+                  <div className="text-sm font-bold text-foreground">{t.name}</div>
+                  <div className="text-xs text-muted-foreground">{t.role}</div>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
       </div>
     </Section>
   );
