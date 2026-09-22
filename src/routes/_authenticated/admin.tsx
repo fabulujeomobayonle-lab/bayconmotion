@@ -572,3 +572,233 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+async function uploadMedia(bucket: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "bin";
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, {
+    cacheControl: "31536000",
+    upsert: false,
+    contentType: file.type || undefined,
+  });
+  if (upErr) throw upErr;
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, LONG_EXPIRY);
+  if (error || !data) throw error ?? new Error("Failed to create signed URL");
+  return data.signedUrl;
+}
+
+function ReviewsPanel({
+  reviews,
+  onNew,
+  onEdit,
+  onDelete,
+  onToggleStatus,
+}: {
+  reviews: ClientReview[];
+  onNew: () => void;
+  onEdit: (r: ClientReview) => void;
+  onDelete: (id: string) => void;
+  onToggleStatus: (r: ClientReview) => void;
+}) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="font-display text-3xl md:text-4xl font-black neon-text">Client Work & Reviews</h1>
+          <p className="text-sm text-muted-foreground mt-1">Add a client's video plus what they said about it.</p>
+        </div>
+        <button
+          onClick={onNew}
+          className="rounded-md bg-primary px-5 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 inline-flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" /> New Review
+        </button>
+      </div>
+
+      {reviews.length === 0 ? (
+        <div className="rounded-2xl neon-border bg-card/30 p-12 text-center">
+          <p className="text-muted-foreground">No client reviews yet. Click <strong>New Review</strong> to add one.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {reviews.map((r) => (
+            <div key={r.id} className="glass rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4">
+              <div className="w-full md:w-32 aspect-video rounded-md neon-border bg-black overflow-hidden flex items-center justify-center">
+                {r.thumbnail_url ? (
+                  <img src={r.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl">▶</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg font-bold truncate">{r.client_name}</h3>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${r.status === "published" ? "bg-primary text-primary-foreground" : "neon-border text-muted-foreground"}`}>
+                    {r.status}
+                  </span>
+                  <span className="text-[10px] text-primary tracking-widest">{"★".repeat(r.rating)}</span>
+                </div>
+                {r.project_title && <p className="text-xs text-muted-foreground mt-0.5">{r.project_title}</p>}
+                <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{r.quote}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => onToggleStatus(r)} className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-md neon-border hover:bg-primary/10">
+                  {r.status === "published" ? "Unpublish" : "Publish"}
+                </button>
+                <button onClick={() => onEdit(r)} className="p-2 rounded-md neon-border hover:bg-primary/10" aria-label="Edit">
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button onClick={() => onDelete(r.id)} className="p-2 rounded-md neon-border hover:bg-primary/10 text-primary" aria-label="Delete">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null; onClose: () => void; onSaved: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [thumbFile, setThumbFile] = useState<File | null>(null);
+  const [progress, setProgress] = useState("");
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const parsed = reviewSchema.safeParse({
+      client_name: form.get("client_name"),
+      client_role: form.get("client_role") ?? "",
+      project_title: form.get("project_title") ?? "",
+      quote: form.get("quote"),
+      rating: form.get("rating"),
+      status: form.get("status"),
+      embed_url: form.get("embed_url") ?? "",
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let video_url = review?.video_url ?? null;
+      let thumbnail_url = review?.thumbnail_url ?? null;
+
+      if (videoFile) {
+        if (videoFile.size > 200 * 1024 * 1024) throw new Error("Video must be under 200 MB");
+        setProgress("Uploading video…");
+        video_url = await uploadMedia("works-videos", videoFile);
+      }
+      if (thumbFile) {
+        if (thumbFile.size > 10 * 1024 * 1024) throw new Error("Thumbnail must be under 10 MB");
+        setProgress("Uploading thumbnail…");
+        thumbnail_url = await uploadMedia("works-thumbnails", thumbFile);
+      }
+
+      setProgress("Saving…");
+      const payload = {
+        client_name: parsed.data.client_name,
+        client_role: parsed.data.client_role || null,
+        project_title: parsed.data.project_title || null,
+        quote: parsed.data.quote,
+        rating: parsed.data.rating,
+        status: parsed.data.status,
+        embed_url: parsed.data.embed_url || null,
+        video_url,
+        thumbnail_url,
+      };
+
+      if (review) {
+        const { error } = await supabase.from("client_reviews").update(payload).eq("id", review.id);
+        if (error) throw error;
+      } else {
+        const { data: u } = await supabase.auth.getUser();
+        const { error } = await supabase.from("client_reviews").insert({ ...payload, created_by: u.user?.id });
+        if (error) throw error;
+      }
+      toast.success(review ? "Updated" : "Created");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+      setProgress("");
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-start md:items-center justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl glass neon-border rounded-2xl p-6 md:p-8 my-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-display text-2xl font-black neon-text">{review ? "Edit Review" : "New Client Review"}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-2xl leading-none">×</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Client name">
+              <input name="client_name" required defaultValue={review?.client_name ?? ""} maxLength={120} className={inputCls} />
+            </Field>
+            <Field label="Client role / company (optional)">
+              <input name="client_role" defaultValue={review?.client_role ?? ""} maxLength={160} className={inputCls} />
+            </Field>
+          </div>
+
+          <Field label="Project title (optional)">
+            <input name="project_title" defaultValue={review?.project_title ?? ""} maxLength={160} className={inputCls} />
+          </Field>
+
+          <Field label="Review">
+            <textarea name="quote" required rows={4} maxLength={1000} defaultValue={review?.quote ?? ""} className={inputCls + " resize-none"} />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Rating">
+              <select name="rating" required defaultValue={String(review?.rating ?? 5)} className={inputCls}>
+                {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
+              </select>
+            </Field>
+            <Field label="Status">
+              <select name="status" required defaultValue={review?.status ?? "draft"} className={inputCls}>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+            </Field>
+          </div>
+
+          <Field label="YouTube / TikTok video link (optional)">
+            <input name="embed_url" type="url" defaultValue={review?.embed_url ?? ""} placeholder="https://www.youtube.com/watch?v=VIDEO_ID" className={inputCls} />
+          </Field>
+
+          <Field label={`Video file (optional${review?.video_url ? ", current file kept if blank" : ""})`}>
+            <label className="flex items-center justify-center gap-2 rounded-md neon-border bg-background/40 px-4 py-3 text-xs uppercase tracking-widest cursor-pointer hover:bg-primary/10">
+              <Upload className="h-4 w-4" />
+              {videoFile ? videoFile.name : "Choose video (.mp4, ≤200 MB)"}
+              <input type="file" accept="video/*" className="hidden" onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)} />
+            </label>
+          </Field>
+
+          <Field label={`Thumbnail image (optional${review?.thumbnail_url ? ", current image kept if blank" : ""})`}>
+            <label className="flex items-center justify-center gap-2 rounded-md neon-border bg-background/40 px-4 py-3 text-xs uppercase tracking-widest cursor-pointer hover:bg-primary/10">
+              <Upload className="h-4 w-4" />
+              {thumbFile ? thumbFile.name : "Choose thumbnail image (≤10 MB)"}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => setThumbFile(e.target.files?.[0] ?? null)} />
+            </label>
+          </Field>
+
+          {progress && <p className="text-xs text-muted-foreground">{progress}</p>}
+
+          <div className="flex items-center gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 rounded-md neon-border px-5 py-3 text-xs uppercase tracking-widest hover:bg-primary/10">Cancel</button>
+            <button type="submit" disabled={saving} className="flex-1 rounded-md bg-primary px-5 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 disabled:opacity-60">
+              {saving ? "Saving…" : review ? "Save Changes" : "Create Review"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
