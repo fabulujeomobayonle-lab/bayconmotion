@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_reviews: {
+        Row: {
+          client_name: string
+          client_role: string | null
+          created_at: string
+          created_by: string | null
+          embed_url: string | null
+          id: string
+          project_title: string | null
+          quote: string
+          rating: number
+          sort_order: number
+          status: Database["public"]["Enums"]["work_status"]
+          thumbnail_url: string | null
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          client_name: string
+          client_role?: string | null
+          created_at?: string
+          created_by?: string | null
+          embed_url?: string | null
+          id?: string
+          project_title?: string | null
+          quote: string
+          rating?: number
+          sort_order?: number
+          status?: Database["public"]["Enums"]["work_status"]
+          thumbnail_url?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          client_name?: string
+          client_role?: string | null
+          created_at?: string
+          created_by?: string | null
+          embed_url?: string | null
+          id?: string
+          project_title?: string | null
+          quote?: string
+          rating?: number
+          sort_order?: number
+          status?: Database["public"]["Enums"]["work_status"]
+          thumbnail_url?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string
