@@ -156,6 +156,7 @@ function AdminPage() {
   useEffect(() => {
     load();
     loadMessages();
+    loadReviews();
   }, []);
 
   async function markRead(m: Message) {
