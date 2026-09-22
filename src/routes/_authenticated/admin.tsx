@@ -245,6 +245,12 @@ function AdminPage() {
             Works
           </button>
           <button
+            onClick={() => setTab("reviews")}
+            className={`px-4 py-3 text-xs uppercase tracking-widest border-b-2 transition ${tab === "reviews" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            Client Reviews
+          </button>
+          <button
             onClick={() => setTab("messages")}
             className={`px-4 py-3 text-xs uppercase tracking-widest border-b-2 transition inline-flex items-center gap-2 ${tab === "messages" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
@@ -257,6 +263,14 @@ function AdminPage() {
 
         {tab === "messages" ? (
           <MessagesPanel messages={messages} onToggleRead={markRead} onDelete={deleteMessage} />
+        ) : tab === "reviews" ? (
+          <ReviewsPanel
+            reviews={reviews}
+            onNew={() => { setEditingReview(null); setShowReviewForm(true); }}
+            onEdit={(r) => { setEditingReview(r); setShowReviewForm(true); }}
+            onDelete={deleteReview}
+            onToggleStatus={toggleReviewStatus}
+          />
         ) : (
         <>
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
