@@ -44,6 +44,31 @@ type Message = {
   created_at: string;
 };
 
+type ClientReview = {
+  id: string;
+  client_name: string;
+  client_role: string | null;
+  quote: string;
+  rating: number;
+  project_title: string | null;
+  embed_url: string | null;
+  video_url: string | null;
+  thumbnail_url: string | null;
+  status: "draft" | "published";
+  sort_order: number;
+  created_at: string;
+};
+
+const reviewSchema = z.object({
+  client_name: z.string().trim().min(1, "Client name is required").max(120),
+  client_role: z.string().trim().max(160).optional().or(z.literal("")),
+  project_title: z.string().trim().max(160).optional().or(z.literal("")),
+  quote: z.string().trim().min(1, "Review text is required").max(1000),
+  rating: z.coerce.number().int().min(1).max(5),
+  status: z.enum(["draft", "published"]),
+  embed_url: z.string().trim().url("Must be a valid URL").max(500).optional().or(z.literal("")),
+});
+
 const CATEGORIES = ["Motion Graphics", "Talking Head", "Random Edit", "Business Edit"] as const;
 const LONG_EXPIRY = 60 * 60 * 24 * 365 * 50; // ~50 years
 
