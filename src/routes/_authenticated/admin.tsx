@@ -268,6 +268,8 @@ function AdminPage() {
                 <div className="w-full md:w-32 aspect-video rounded-md neon-border bg-black overflow-hidden flex items-center justify-center">
                   {w.thumbnail_url ? (
                     <img src={w.thumbnail_url} alt={w.title} className="w-full h-full object-cover" />
+                  ) : w.video_url ? (
+                    <video src={w.video_url} className="w-full h-full object-cover" muted preload="metadata" />
                   ) : (
                     <span className="text-2xl">▶</span>
                   )}
@@ -418,12 +420,12 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
       if (videoFile) {
         if (videoFile.size > 200 * 1024 * 1024) throw new Error("Video must be under 200 MB");
         setProgress("Uploading video…");
-        video_url = await uploadFile("works-videos", videoFile);
+        video_url = await uploadMediaFile("works-videos", videoFile);
       }
       if (thumbFile) {
         if (thumbFile.size > 10 * 1024 * 1024) throw new Error("Thumbnail must be under 10 MB");
         setProgress("Uploading thumbnail…");
-        thumbnail_url = await uploadFile("works-thumbnails", thumbFile);
+        thumbnail_url = await uploadMediaFile("works-thumbnails", thumbFile);
       }
 
       setProgress("Saving…");
@@ -442,13 +444,15 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
         if (error) throw error;
       } else {
         const { data: u } = await supabase.auth.getUser();
-        const { error } = await supabase.from("works").insert({ ...payload, created_by: u.user?.id });
+        const { error } = await supabase.from("works").insert({ ...payload, created_by: u?.user?.id ?? null });
         if (error) throw error;
       }
       toast.success(work ? "Updated" : "Created");
       onSaved();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+    } catch (err: any) {
+      console.error("Work save error:", err);
+      const msg = err?.message || err?.error_description || "Save failed";
+      toast.error(msg);
     } finally {
       setSaving(false);
       setProgress("");
@@ -541,17 +545,36 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
-async function uploadMedia(bucket: string, file: File): Promise<string> {
+async function uploadMediaFile(bucket: string, file: File): Promise<string> {
   const ext = file.name.split(".").pop() ?? "bin";
   const path = `${crypto.randomUUID()}.${ext}`;
+
   const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: "31536000",
-    upsert: false,
+    upsert: true,
     contentType: file.type || undefined,
   });
-  if (upErr) throw upErr;
+
+  if (upErr) {
+    console.error(`[Storage Upload Error] Bucket: ${bucket}`, upErr);
+    if (upErr.message?.includes("row-level security") || upErr.message?.includes("RLS")) {
+      throw new Error(`Upload failed due to Supabase Storage RLS permissions. Please run the SQL migration in your Supabase SQL Editor.`);
+    }
+    if (upErr.message?.includes("Bucket not found") || (upErr as any).statusCode === "404") {
+      throw new Error(`Storage bucket "${bucket}" not found. Please run the SQL migration to create it in your Supabase project.`);
+    }
+    throw new Error(upErr.message || "Failed to upload file to storage.");
+  }
+
+  const { data: pubData } = supabase.storage.from(bucket).getPublicUrl(path);
+  if (pubData?.publicUrl) {
+    return pubData.publicUrl;
+  }
+
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, LONG_EXPIRY);
-  if (error || !data) throw error ?? new Error("Failed to create signed URL");
+  if (error || !data?.signedUrl) {
+    throw error ?? new Error("Failed to create file URL");
+  }
   return data.signedUrl;
 }
 
@@ -594,6 +617,8 @@ function ReviewsPanel({
               <div className="w-full md:w-32 aspect-video rounded-md neon-border bg-black overflow-hidden flex items-center justify-center">
                 {r.thumbnail_url ? (
                   <img src={r.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                ) : r.video_url ? (
+                  <video src={r.video_url} className="w-full h-full object-cover" muted preload="metadata" />
                 ) : (
                   <span className="text-2xl">▶</span>
                 )}
@@ -659,12 +684,12 @@ function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null;
       if (videoFile) {
         if (videoFile.size > 200 * 1024 * 1024) throw new Error("Video must be under 200 MB");
         setProgress("Uploading video…");
-        video_url = await uploadMedia("works-videos", videoFile);
+        video_url = await uploadMediaFile("works-videos", videoFile);
       }
       if (thumbFile) {
         if (thumbFile.size > 10 * 1024 * 1024) throw new Error("Thumbnail must be under 10 MB");
         setProgress("Uploading thumbnail…");
-        thumbnail_url = await uploadMedia("works-thumbnails", thumbFile);
+        thumbnail_url = await uploadMediaFile("works-thumbnails", thumbFile);
       }
 
       setProgress("Saving…");
@@ -685,13 +710,15 @@ function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null;
         if (error) throw error;
       } else {
         const { data: u } = await supabase.auth.getUser();
-        const { error } = await supabase.from("client_reviews").insert({ ...payload, created_by: u.user?.id });
+        const { error } = await supabase.from("client_reviews").insert({ ...payload, created_by: u?.user?.id ?? null });
         if (error) throw error;
       }
       toast.success(review ? "Updated" : "Created");
       onSaved();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
+    } catch (err: any) {
+      console.error("Review save error:", err);
+      const msg = err?.message || err?.error_description || "Save failed";
+      toast.error(msg);
     } finally {
       setSaving(false);
       setProgress("");
