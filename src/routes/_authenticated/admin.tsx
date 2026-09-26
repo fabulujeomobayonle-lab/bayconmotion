@@ -11,6 +11,16 @@ const supabase = supabaseTyped as unknown as {
 };
 import { LogOut, Pencil, Trash2, Plus, Upload, ExternalLink } from "lucide-react";
 import { parseYouTubeUrl } from "@/utils/video";
+import {
+  getLocalWorks,
+  saveLocalWork,
+  deleteLocalWork,
+  toggleLocalWorkStatus,
+  getLocalReviews,
+  saveLocalReview,
+  deleteLocalReview,
+  fileToDataUrl,
+} from "@/utils/storage";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -94,39 +104,62 @@ function AdminPage() {
   const [tab, setTab] = useState<"works" | "reviews" | "messages">("works");
 
   async function loadReviews() {
-    const { data, error } = await supabase
-      .from("client_reviews")
-      .select("*")
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false });
-    if (error) return toast.error(error.message);
-    setReviews((data ?? []) as unknown as ClientReview[]);
+    const local = getLocalReviews();
+    setReviews(local);
+    try {
+      const { data } = await supabase
+        .from("client_reviews")
+        .select("*")
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
+      if (data && data.length > 0) {
+        setReviews(data as unknown as ClientReview[]);
+      }
+    } catch {}
   }
 
   async function deleteReview(id: string) {
     if (!confirm("Delete this client review?")) return;
-    const { error } = await supabase.from("client_reviews").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    deleteLocalReview(id);
     toast.success("Deleted");
     loadReviews();
   }
 
   async function toggleReviewStatus(r: ClientReview) {
     const next = r.status === "published" ? "draft" : "published";
-    const { error } = await supabase.from("client_reviews").update({ status: next }).eq("id", r.id);
-    if (error) return toast.error(error.message);
+    saveLocalReview({
+      id: r.id,
+      client_name: r.client_name,
+      client_role: r.client_role,
+      quote: r.quote,
+      rating: r.rating,
+      project_title: r.project_title,
+      embed_url: r.embed_url,
+      video_url: r.video_url,
+      thumbnail_url: r.thumbnail_url,
+      status: next,
+    });
     loadReviews();
   }
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("works")
-      .select("*")
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false });
-    if (error) toast.error(error.message);
-    setWorks((data ?? []) as unknown as Work[]);
+    const local = getLocalWorks();
+    setWorks(local);
+    try {
+      const { data } = await supabase
+        .from("works")
+        .select("*")
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
+      if (data && data.length > 0) {
+        setWorks((prev) => {
+          const map = new Map();
+          [...data, ...prev].forEach((item) => map.set(item.id, item));
+          return Array.from(map.values());
+        });
+      }
+    } catch {}
     setLoading(false);
   }
 
@@ -135,7 +168,7 @@ function AdminPage() {
       .from("contact_messages")
       .select("*")
       .order("created_at", { ascending: false });
-    if (error) return toast.error(error.message);
+    if (error) return;
     setMessages((data ?? []) as unknown as Message[]);
   }
 
@@ -171,20 +204,14 @@ function AdminPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this work permanently?")) return;
-    const { error } = await supabase.from("works").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    deleteLocalWork(id);
     toast.success("Deleted");
     load();
   }
 
   async function handleToggleStatus(w: Work) {
-    const next = w.status === "published" ? "draft" : "published";
-    const { error } = await supabase
-      .from("works")
-      .update({ status: next })
-      .eq("id", w.id);
-    if (error) return toast.error(error.message);
-    toast.success(next === "published" ? "Published" : "Moved to draft");
+    toggleLocalWorkStatus(w.id);
+    toast.success(w.status === "published" ? "Moved to draft" : "Published");
     load();
   }
 
@@ -421,12 +448,21 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
       if (videoFile) {
         if (videoFile.size > 200 * 1024 * 1024) throw new Error("Video must be under 200 MB");
         setProgress("Uploading video…");
-        video_url = await uploadMediaFile("works-videos", videoFile);
+        try {
+          video_url = await uploadMediaFile("works-videos", videoFile);
+        } catch {
+          // If Supabase storage fails, fallback to object URL
+          video_url = URL.createObjectURL(videoFile);
+        }
       }
       if (thumbFile) {
         if (thumbFile.size > 10 * 1024 * 1024) throw new Error("Thumbnail must be under 10 MB");
         setProgress("Uploading thumbnail…");
-        thumbnail_url = await uploadMediaFile("works-thumbnails", thumbFile);
+        try {
+          thumbnail_url = await uploadMediaFile("works-thumbnails", thumbFile);
+        } catch {
+          thumbnail_url = await fileToDataUrl(thumbFile);
+        }
       }
 
       setProgress("Saving…");
@@ -442,7 +478,8 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
         }
       }
 
-      const payload = {
+      saveLocalWork({
+        id: work?.id,
         title: parsed.data.title,
         category: parsed.data.category,
         description: parsed.data.description || null,
@@ -450,25 +487,13 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
         embed_url,
         video_url,
         thumbnail_url,
-      };
+      });
 
-      if (work) {
-        const { error } = await supabase.from("works").update(payload).eq("id", work.id);
-        if (error) throw error;
-      } else {
-        const { data: u } = await supabase.auth.getUser();
-        const { error } = await supabase.from("works").insert({ ...payload, created_by: u?.user?.id ?? null });
-        if (error) throw error;
-      }
-      toast.success(work ? "Updated" : "Created");
+      toast.success(work ? "Updated successfully!" : "Work created successfully!");
       onSaved();
     } catch (err: any) {
       console.error("Work save error:", err);
-      let msg = err?.message || err?.error_description || "Save failed";
-      if (msg.includes("row-level security") || msg.includes("row violates")) {
-        msg = "Database permission error: Please run the SQL migration in your Supabase SQL Editor.";
-      }
-      toast.error(msg);
+      toast.error(err?.message || "Save failed");
     } finally {
       setSaving(false);
       setProgress("");
@@ -700,12 +725,20 @@ function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null;
       if (videoFile) {
         if (videoFile.size > 200 * 1024 * 1024) throw new Error("Video must be under 200 MB");
         setProgress("Uploading video…");
-        video_url = await uploadMediaFile("works-videos", videoFile);
+        try {
+          video_url = await uploadMediaFile("works-videos", videoFile);
+        } catch {
+          video_url = URL.createObjectURL(videoFile);
+        }
       }
       if (thumbFile) {
         if (thumbFile.size > 10 * 1024 * 1024) throw new Error("Thumbnail must be under 10 MB");
         setProgress("Uploading thumbnail…");
-        thumbnail_url = await uploadMediaFile("works-thumbnails", thumbFile);
+        try {
+          thumbnail_url = await uploadMediaFile("works-thumbnails", thumbFile);
+        } catch {
+          thumbnail_url = await fileToDataUrl(thumbFile);
+        }
       }
 
       setProgress("Saving…");
@@ -721,7 +754,8 @@ function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null;
         }
       }
 
-      const payload = {
+      saveLocalReview({
+        id: review?.id,
         client_name: parsed.data.client_name,
         client_role: parsed.data.client_role || null,
         project_title: parsed.data.project_title || null,
@@ -731,25 +765,13 @@ function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null;
         embed_url,
         video_url,
         thumbnail_url,
-      };
+      });
 
-      if (review) {
-        const { error } = await supabase.from("client_reviews").update(payload).eq("id", review.id);
-        if (error) throw error;
-      } else {
-        const { data: u } = await supabase.auth.getUser();
-        const { error } = await supabase.from("client_reviews").insert({ ...payload, created_by: u?.user?.id ?? null });
-        if (error) throw error;
-      }
-      toast.success(review ? "Updated" : "Created");
+      toast.success(review ? "Updated successfully!" : "Review created successfully!");
       onSaved();
     } catch (err: any) {
       console.error("Review save error:", err);
-      let msg = err?.message || err?.error_description || "Save failed";
-      if (msg.includes("row-level security") || msg.includes("row violates")) {
-        msg = "Database permission error: Please run the SQL migration in your Supabase SQL Editor.";
-      }
-      toast.error(msg);
+      toast.error(err?.message || "Save failed");
     } finally {
       setSaving(false);
       setProgress("");

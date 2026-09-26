@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Film, Play } from "lucide-react";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
 import { parseYouTubeUrl } from "@/utils/video";
+import { getLocalWorks } from "@/utils/storage";
 
 const supabase = supabaseTyped as unknown as {
   from: (table: string) => any;
@@ -101,6 +102,28 @@ function PortfolioPage() {
 
   useEffect(() => {
     async function loadWorks() {
+      const localWorks = getLocalWorks().filter((w) => w.status === "published");
+      if (localWorks.length > 0) {
+        const localMapped: ProjectData[] = localWorks.map((w) => {
+          const yt = parseYouTubeUrl(w.embed_url || w.video_url);
+          return {
+            id: w.id,
+            title: w.title,
+            category: w.category || "General Editing",
+            description: w.description || "",
+            embedUrl: w.embed_url,
+            videoUrl: w.video_url,
+            thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
+            views: "Featured Work",
+            retention: "High Retention",
+            cuts: "Fast Paced",
+            colorLut: "Custom LUT",
+            techniques: ["Motion FX", "Color Grading", "Audio Sync"],
+          };
+        });
+        setDbProjects(localMapped);
+      }
+
       try {
         const { data, error } = await supabase
           .from("works")
@@ -110,7 +133,7 @@ function PortfolioPage() {
           .order("created_at", { ascending: false });
 
         if (!error && data && data.length > 0) {
-          const mapped: ProjectData[] = data.map((w: any) => {
+          const remoteMapped: ProjectData[] = data.map((w: any) => {
             const yt = parseYouTubeUrl(w.embed_url || w.video_url);
             return {
               id: w.id,
@@ -127,7 +150,12 @@ function PortfolioPage() {
               techniques: ["Motion FX", "Color Grading", "Audio Sync"],
             };
           });
-          setDbProjects(mapped);
+
+          setDbProjects((prev) => {
+            const map = new Map();
+            [...remoteMapped, ...prev].forEach((item) => map.set(item.id || item.title, item));
+            return Array.from(map.values());
+          });
         }
       } catch (err) {
         console.error("Error loading portfolio works:", err);
