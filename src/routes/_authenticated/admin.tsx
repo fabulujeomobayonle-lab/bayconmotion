@@ -451,7 +451,10 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
       onSaved();
     } catch (err: any) {
       console.error("Work save error:", err);
-      const msg = err?.message || err?.error_description || "Save failed";
+      let msg = err?.message || err?.error_description || "Save failed";
+      if (msg.includes("row-level security") || msg.includes("row violates")) {
+        msg = "Database permission error: Please run the SQL migration in your Supabase SQL Editor.";
+      }
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -717,7 +720,10 @@ function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null;
       onSaved();
     } catch (err: any) {
       console.error("Review save error:", err);
-      const msg = err?.message || err?.error_description || "Save failed";
+      let msg = err?.message || err?.error_description || "Save failed";
+      if (msg.includes("row-level security") || msg.includes("row violates")) {
+        msg = "Database permission error: Please run the SQL migration in your Supabase SQL Editor.";
+      }
       toast.error(msg);
     } finally {
       setSaving(false);
