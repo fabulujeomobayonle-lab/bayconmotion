@@ -10,6 +10,7 @@ const supabase = supabaseTyped as unknown as {
   from: (table: string) => any;
 };
 import { LogOut, Pencil, Trash2, Plus, Upload, ExternalLink } from "lucide-react";
+import { parseYouTubeUrl } from "@/utils/video";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -66,7 +67,7 @@ const reviewSchema = z.object({
   quote: z.string().trim().min(1, "Review text is required").max(1000),
   rating: z.coerce.number().int().min(1).max(5),
   status: z.enum(["draft", "published"]),
-  embed_url: z.string().trim().max(500).optional().or(z.literal("")),
+  embed_url: z.string().trim().max(1000).optional().or(z.literal("")),
 });
 
 const CATEGORIES = ["Motion Graphics", "Talking Head", "Random Edit", "Business Edit"] as const;
@@ -77,7 +78,7 @@ const workSchema = z.object({
   category: z.enum(CATEGORIES),
   description: z.string().trim().max(1000).optional().or(z.literal("")),
   status: z.enum(["draft", "published"]),
-  embed_url: z.string().trim().max(500).optional().or(z.literal("")),
+  embed_url: z.string().trim().max(1000).optional().or(z.literal("")),
 });
 
 function AdminPage() {
@@ -429,12 +430,24 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
       }
 
       setProgress("Saving…");
+
+      let embed_url = parsed.data.embed_url || null;
+      if (embed_url) {
+        const parsedYt = parseYouTubeUrl(embed_url);
+        if (parsedYt.embedUrl) {
+          embed_url = parsedYt.embedUrl;
+        }
+        if (!thumbnail_url && parsedYt.thumbnailUrl) {
+          thumbnail_url = parsedYt.thumbnailUrl;
+        }
+      }
+
       const payload = {
         title: parsed.data.title,
         category: parsed.data.category,
         description: parsed.data.description || null,
         status: parsed.data.status,
-        embed_url: parsed.data.embed_url || null,
+        embed_url,
         video_url,
         thumbnail_url,
       };
@@ -696,6 +709,18 @@ function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null;
       }
 
       setProgress("Saving…");
+
+      let embed_url = parsed.data.embed_url || null;
+      if (embed_url) {
+        const parsedYt = parseYouTubeUrl(embed_url);
+        if (parsedYt.embedUrl) {
+          embed_url = parsedYt.embedUrl;
+        }
+        if (!thumbnail_url && parsedYt.thumbnailUrl) {
+          thumbnail_url = parsedYt.thumbnailUrl;
+        }
+      }
+
       const payload = {
         client_name: parsed.data.client_name,
         client_role: parsed.data.client_role || null,
@@ -703,7 +728,7 @@ function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null;
         quote: parsed.data.quote,
         rating: parsed.data.rating,
         status: parsed.data.status,
-        embed_url: parsed.data.embed_url || null,
+        embed_url,
         video_url,
         thumbnail_url,
       };
