@@ -6,6 +6,7 @@ import { Shield, Sparkles, Send, Terminal, Play, Cpu } from "lucide-react";
 export function Footer() {
   const [utcTime, setUtcTime] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [secretClicks, setSecretClicks] = useState(0);
 
   useEffect(() => {
     const updateTime = () => {
@@ -14,8 +15,32 @@ export function Footer() {
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        sound.playSuccess();
+        window.location.href = "/vault";
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
+
+  const handleSecretClick = () => {
+    sound.playClick(900);
+    const next = secretClicks + 1;
+    setSecretClicks(next);
+    if (next >= 5) {
+      sound.playSuccess();
+      setSecretClicks(0);
+      window.location.href = "/vault";
+    }
+  };
 
   const handleNewsletter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,7 +168,7 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono text-muted-foreground">
-          <div>
+          <div className="cursor-pointer select-none hover:text-cyan-400 transition-colors" onClick={handleSecretClick} title="Quantum Terminal Link">
             © {new Date().getFullYear()} BAYCON MOTION & EDITING STUDIO. ALL RIGHTS RESERVED.
           </div>
           <div className="flex items-center gap-4">
