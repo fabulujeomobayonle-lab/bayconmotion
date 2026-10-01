@@ -74,6 +74,12 @@ const INITIAL_WORKS: Work[] = [
 const STORAGE_KEY_WORKS = "baycon_works_v2";
 const STORAGE_KEY_REVIEWS = "baycon_reviews_v2";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function isUuid(id: string | null | undefined): boolean {
+  if (!id) return false;
+  return UUID_REGEX.test(id);
+}
+
 export function getLocalWorks(): Work[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_WORKS);
@@ -81,7 +87,8 @@ export function getLocalWorks(): Work[] {
       localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(INITIAL_WORKS));
       return INITIAL_WORKS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : INITIAL_WORKS;
   } catch {
     return INITIAL_WORKS;
   }
@@ -92,12 +99,37 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
   let updatedWork: Work;
 
   if (work.id) {
+    const existing = current.find((w) => w.id === work.id);
+    let finalId = work.id;
+
+    // If existing item has a non-UUID demo ID, upgrade it to a real UUID so Supabase accepts it
+    if (!isUuid(finalId)) {
+      finalId = crypto.randomUUID();
+    }
+
     updatedWork = {
-      ...current.find((w) => w.id === work.id)!,
+      ...(existing || {}),
       ...work,
+      id: finalId,
+      created_at: existing?.created_at || new Date().toISOString(),
+      sort_order: existing?.sort_order || 1,
     } as Work;
+
     const next = current.map((w) => (w.id === work.id ? updatedWork : w));
     localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(next));
+
+    // Sync to Supabase
+    (async () => {
+      try {
+        if (isUuid(work.id)) {
+          await supabase.from("works").update(updatedWork).eq("id", work.id);
+        } else {
+          await supabase.from("works").upsert(updatedWork);
+        }
+      } catch (err) {
+        console.warn("Supabase work update sync warning:", err);
+      }
+    })();
   } else {
     updatedWork = {
       ...work,
@@ -107,20 +139,15 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
     };
     const next = [updatedWork, ...current];
     localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(next));
-  }
 
-  // Best-effort background sync to Supabase without blocking UI
-  (async () => {
-    try {
-      if (work.id) {
-        await supabase.from("works").update(updatedWork).eq("id", work.id);
-      } else {
+    (async () => {
+      try {
         await supabase.from("works").insert(updatedWork);
+      } catch (err) {
+        console.warn("Supabase work insert sync warning:", err);
       }
-    } catch {
-      // Ignored: local storage holds truth
-    }
-  })();
+    })();
+  }
 
   return updatedWork;
 }
@@ -132,20 +159,50 @@ export function deleteLocalWork(id: string): void {
 
   (async () => {
     try {
-      await supabase.from("works").delete().eq("id", id);
-    } catch {}
+      if (isUuid(id)) {
+        await supabase.from("works").delete().eq("id", id);
+      }
+    } catch (err) {
+      console.warn("Supabase work delete sync warning:", err);
+    }
   })();
 }
 
-export function toggleLocalWorkStatus(id: string): void {
+export function toggleLocalWorkStatus(id: string): "published" | "draft" {
   const current = getLocalWorks();
+  let newStatus: "published" | "draft" = "draft";
+  let targetWork: Work | undefined;
+
   const next = current.map((w) => {
     if (w.id === id) {
-      return { ...w, status: w.status === "published" ? ("draft" as const) : ("published" as const) };
+      newStatus = w.status === "published" ? "draft" : "published";
+      targetWork = { ...w, status: newStatus };
+      return targetWork;
     }
     return w;
   });
+
   localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(next));
+
+  // Sync status change to Supabase
+  (async () => {
+    try {
+      if (isUuid(id)) {
+        await supabase.from("works").update({ status: newStatus }).eq("id", id);
+      } else if (targetWork) {
+        // Upgrade demo work to UUID and upsert so database recognizes it
+        const newUuid = crypto.randomUUID();
+        const upgraded = { ...targetWork, id: newUuid };
+        const updatedList = getLocalWorks().map((w) => (w.id === id ? upgraded : w));
+        localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(updatedList));
+        await supabase.from("works").upsert(upgraded);
+      }
+    } catch (err) {
+      console.warn("Supabase toggle status sync warning:", err);
+    }
+  })();
+
+  return newStatus;
 }
 
 export function getLocalReviews(): ClientReview[] {

@@ -109,26 +109,32 @@ function HomePage() {
           .limit(6);
 
         if (!error && data && data.length > 0) {
-          const remoteMapped: ProjectData[] = data.map((w: any, idx: number) => {
-            const yt = parseYouTubeUrl(w.embed_url || w.video_url);
-            return {
-              id: w.id,
-              title: w.title,
-              category: w.category || "General Editing",
-              client: "Baycon Client",
-              views: `Viral Pick #${idx + 1}`,
-              retention: "88.2% Retention",
-              cuts: "0.8s Cut Rate",
-              colorLut: "Cinema Grade Pro",
-              description: w.description || "High impact video edit engineered for maximum retention.",
-              techniques: ["Kinetic Captions", "Sound FX Drops", "Color Grading", "Motion Graphics"],
-              embedUrl: w.embed_url,
-              videoUrl: w.video_url,
-              thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
-            };
-          });
+          const allLocal = getLocalWorks();
+          const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
+          const validData = data.filter((w: any) => !draftIds.has(w.id));
 
-          setFeaturedReels(remoteMapped);
+          if (validData.length > 0) {
+            const remoteMapped: ProjectData[] = validData.map((w: any, idx: number) => {
+              const yt = parseYouTubeUrl(w.embed_url || w.video_url);
+              return {
+                id: w.id,
+                title: w.title,
+                category: w.category || "General Editing",
+                client: "Baycon Client",
+                views: `Viral Pick #${idx + 1}`,
+                retention: "88.2% Retention",
+                cuts: "0.8s Cut Rate",
+                colorLut: "Cinema Grade Pro",
+                description: w.description || "High impact video edit engineered for maximum retention.",
+                techniques: ["Kinetic Captions", "Sound FX Drops", "Color Grading", "Motion Graphics"],
+                embedUrl: w.embed_url,
+                videoUrl: w.video_url,
+                thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
+              };
+            });
+
+            setFeaturedReels(remoteMapped);
+          }
         }
       } catch (err) {
         console.error("Error loading home featured reels:", err);

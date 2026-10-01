@@ -152,9 +152,15 @@ function PortfolioPage() {
           });
 
           setDbProjects((prev) => {
+            const allLocal = getLocalWorks();
+            const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
+            const validRemote = remoteMapped.filter((w) => !draftIds.has(w.id));
             const map = new Map();
-            [...remoteMapped, ...prev].forEach((item) => map.set(item.id || item.title, item));
-            return Array.from(map.values());
+            [...validRemote, ...prev].forEach((item) => map.set(item.id || item.title, item));
+            return Array.from(map.values()).filter((item) => {
+              const localMatch = allLocal.find((l) => l.id === item.id);
+              return localMatch ? localMatch.status === "published" : true;
+            });
           });
         }
       } catch (err) {

@@ -153,11 +153,15 @@ function AdminPage() {
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
       if (data && data.length > 0) {
-        setWorks((prev) => {
-          const map = new Map();
-          [...data, ...prev].forEach((item) => map.set(item.id, item));
-          return Array.from(map.values());
+        const localMap = new Map(local.map((l) => [l.id, l]));
+        // Respect local status changes (like unpublishing) over remote
+        const mergedRemote = data.map((remote: any) => {
+          const localItem = localMap.get(remote.id);
+          return localItem ? { ...remote, status: localItem.status } : remote;
         });
+        const remoteIds = new Set(data.map((d: any) => d.id));
+        const unmergedLocal = local.filter((l) => !remoteIds.has(l.id));
+        setWorks([...unmergedLocal, ...mergedRemote]);
       }
     } catch {}
     setLoading(false);
@@ -210,9 +214,15 @@ function AdminPage() {
   }
 
   async function handleToggleStatus(w: Work) {
-    toggleLocalWorkStatus(w.id);
-    toast.success(w.status === "published" ? "Moved to draft" : "Published");
-    load();
+    const nextStatus = toggleLocalWorkStatus(w.id);
+    setWorks((prev) =>
+      prev.map((item) => (item.id === w.id ? { ...item, status: nextStatus } : item))
+    );
+    toast.success(
+      nextStatus === "published"
+        ? "Video published! Now visible on site."
+        : "Video unpublished! Moved to draft."
+    );
   }
 
   return (

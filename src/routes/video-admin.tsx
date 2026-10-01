@@ -163,7 +163,7 @@ function VideoAdminPage() {
       const finalThumbnail =
         customThumbnail.trim() || parsedVideo.thumbnailUrl || null;
 
-      saveLocalWork({
+      const saved = saveLocalWork({
         id: editingId || undefined,
         title: title.trim(),
         category,
@@ -178,17 +178,19 @@ function VideoAdminPage() {
       toast.success(
         editingId
           ? "Video updated and live on site!"
-          : "Video link published! Now visible on Home & Portfolio!"
+          : status === "published"
+          ? "Video link published! Now visible on Home & Portfolio!"
+          : "Video saved as Draft (hidden from site)."
       );
 
-      // Reset form
+      // Reset form & update works list immediately
       setEditingId(null);
       setInputUrl("");
       setTitle("");
       setDescription("");
       setCustomThumbnail("");
       setStatus("published");
-      loadWorks();
+      setWorks(getLocalWorks());
     } catch (err: any) {
       sound.playGlitch();
       toast.error(err?.message || "Failed to save video link");
@@ -225,16 +227,22 @@ function VideoAdminPage() {
     if (!window.confirm(`Delete "${workTitle}" from the site?`)) return;
     sound.playGlitch();
     deleteLocalWork(id);
-    loadWorks();
+    setWorks(getLocalWorks());
     toast.success("Video deleted from site");
   };
 
   // Toggle published status
   const handleToggleStatus = (id: string) => {
     sound.playClick(800);
-    toggleLocalWorkStatus(id);
-    loadWorks();
-    toast.success("Video status updated!");
+    const nextStatus = toggleLocalWorkStatus(id);
+    setWorks((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status: nextStatus } : item))
+    );
+    toast.success(
+      nextStatus === "published"
+        ? "Video published! Now live on site."
+        : "Video unpublished! Moved to draft."
+    );
   };
 
   // Copy link helper
@@ -848,6 +856,19 @@ function VideoAdminPage() {
                     {/* Actions Bar */}
                     <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs font-mono">
                       <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(work.id)}
+                          className={`rounded-lg px-2.5 py-1 text-[11px] font-bold border transition-all ${
+                            work.status === "published"
+                              ? "bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500 hover:text-black"
+                              : "bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500 hover:text-black"
+                          }`}
+                          title={work.status === "published" ? "Click to unpublish (hide from site)" : "Click to publish (show on site)"}
+                        >
+                          {work.status === "published" ? "Unpublish" : "Publish"}
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => startEditing(work)}
