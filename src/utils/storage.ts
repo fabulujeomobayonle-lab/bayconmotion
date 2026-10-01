@@ -39,11 +39,37 @@ export const BANNED_WORK_IDS = new Set([
   "c6d6ecfb-42ae-4905-a8a2-c6df14c6940c",
 ]);
 
+const STORAGE_KEY_WORKS = "baycon_works_v2";
+const STORAGE_KEY_REVIEWS = "baycon_reviews_v2";
+const STORAGE_KEY_DELETED = "baycon_deleted_works_v2";
+
+export function getDeletedWorkIds(): Set<string> {
+  try {
+    if (typeof window === "undefined") return new Set();
+    const raw = localStorage.getItem(STORAGE_KEY_DELETED);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function addDeletedWorkId(id: string): void {
+  try {
+    if (typeof window === "undefined") return;
+    const set = getDeletedWorkIds();
+    set.add(id);
+    localStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
 export function isValidWork(w: any): boolean {
   if (!w || typeof w !== "object") return false;
   if (!w.id || typeof w.id !== "string") return false;
   if (w.id.startsWith("demo-")) return false;
   if (BANNED_WORK_IDS.has(w.id)) return false;
+  if (getDeletedWorkIds().has(w.id)) return false;
 
   // Filter out the 2 stale initial featured edits by title as well
   const lowerTitle = (w.title || "").toLowerCase().trim();
@@ -57,9 +83,6 @@ export function isValidWork(w: any): boolean {
   }
   return true;
 }
-
-const STORAGE_KEY_WORKS = "baycon_works_v2";
-const STORAGE_KEY_REVIEWS = "baycon_reviews_v2";
 
 try {
   if (typeof window !== "undefined") {
@@ -170,6 +193,7 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
 }
 
 export function deleteLocalWork(id: string): void {
+  addDeletedWorkId(id);
   const current = getLocalWorks();
   const next = current.filter((w) => w.id !== id);
   localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(next));

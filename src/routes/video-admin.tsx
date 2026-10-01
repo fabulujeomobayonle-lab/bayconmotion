@@ -237,7 +237,7 @@ function VideoAdminPage() {
     if (!window.confirm(`Delete "${workTitle}" from the site?`)) return;
     sound.playGlitch();
     deleteLocalWork(id);
-    setWorks(getLocalWorks());
+    setWorks((prev) => prev.filter((w) => w.id !== id));
     toast.success("Video deleted from site");
   };
 

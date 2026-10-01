@@ -219,8 +219,8 @@ function AdminPage() {
   async function handleDelete(id: string) {
     if (!confirm("Delete this work permanently?")) return;
     deleteLocalWork(id);
-    toast.success("Deleted");
-    load();
+    setWorks((prev) => prev.filter((w) => w.id !== id));
+    toast.success("Deleted permanently");
   }
 
   async function handleToggleStatus(w: Work) {
