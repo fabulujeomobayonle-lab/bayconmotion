@@ -32,44 +32,20 @@ export type ClientReview = {
   created_at: string;
 };
 
-const INITIAL_WORKS: Work[] = [
-  {
-    id: "demo-1",
-    title: "VIRAL SAAS FOUNDER REEL",
-    category: "Talking Head",
-    description: "Fast-paced vertical talking head reel with kinetic captions, floating 3D browser popups, and sound FX drops.",
-    status: "published",
-    embed_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    video_url: null,
-    thumbnail_url: "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
-    sort_order: 1,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "demo-2",
-    title: "YOUTUBE TECH MASTERCLASS",
-    category: "Motion Graphics",
-    description: "14-minute tutorial video transformed into a cinema-grade masterclass with animated code highlights and diagrams.",
-    status: "published",
-    embed_url: "https://www.youtube.com/embed/L_LUpnjgPso",
-    video_url: null,
-    thumbnail_url: "https://img.youtube.com/vi/L_LUpnjgPso/hqdefault.jpg",
-    sort_order: 2,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "demo-3",
-    title: "BUSINESS EMPIRE COMMERCIAL",
-    category: "Business Edit",
-    description: "Aggressive, high-conversion commercial spot for a cryptocurrency trading brand with fast glitch cuts.",
-    status: "published",
-    embed_url: "https://www.youtube.com/embed/fJ9rUzIMcZQ",
-    video_url: null,
-    thumbnail_url: "https://img.youtube.com/vi/fJ9rUzIMcZQ/hqdefault.jpg",
-    sort_order: 3,
-    created_at: new Date().toISOString(),
-  },
-];
+const INITIAL_WORKS: Work[] = [];
+
+export const BANNED_WORK_IDS = new Set([
+  "ef2cd025-d964-489c-8e6b-bf0b39f724e6",
+  "c6d6ecfb-42ae-4905-a8a2-c6df14c6940c",
+]);
+
+export function isValidWork(w: any): boolean {
+  if (!w || typeof w !== "object") return false;
+  if (!w.id || typeof w.id !== "string") return false;
+  if (w.id.startsWith("demo-")) return false;
+  if (BANNED_WORK_IDS.has(w.id)) return false;
+  return true;
+}
 
 const STORAGE_KEY_WORKS = "baycon_works_v2";
 const STORAGE_KEY_REVIEWS = "baycon_reviews_v2";
@@ -84,14 +60,36 @@ export function getLocalWorks(): Work[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_WORKS);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(INITIAL_WORKS));
-      return INITIAL_WORKS;
+      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify([]));
+      return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_WORKS;
+    if (!Array.isArray(parsed)) return [];
+
+    // Filter out obsolete legacy items and demo items
+    const cleaned = parsed.filter(isValidWork);
+    if (cleaned.length !== parsed.length) {
+      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(cleaned));
+    }
+    return cleaned;
   } catch {
-    return INITIAL_WORKS;
+    return [];
   }
+}
+
+export function clearAllWorks(): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify([]));
+  } catch {}
+
+  (async () => {
+    try {
+      // Clear all works from Supabase
+      await supabase.from("works").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    } catch (err) {
+      console.warn("Supabase clear works warning:", err);
+    }
+  })();
 }
 
 export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order"> & { id?: string }): Work {

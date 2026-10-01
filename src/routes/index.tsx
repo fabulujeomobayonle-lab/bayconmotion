@@ -9,7 +9,7 @@ import { sound } from "@/components/SoundSystem";
 import { useState, useEffect } from "react";
 import { Play, Sparkles, Zap, Flame, Shield, ArrowRight, Star, Film, Sliders, CheckCircle2, TrendingUp } from "lucide-react";
 import { VideoModal, type ProjectData } from "@/components/VideoModal";
-import { getLocalWorks } from "@/utils/storage";
+import { getLocalWorks, isValidWork } from "@/utils/storage";
 import { parseYouTubeUrl } from "@/utils/video";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
 
@@ -27,56 +27,14 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-const DEFAULT_REELS: ProjectData[] = [
-  {
-    title: "VIRAL SAAS FOUNDER REEL",
-    category: "Talking Head",
-    client: "Alex Tech Founder",
-    views: "2.4M Views",
-    retention: "87.4%",
-    cuts: "0.8s Cut Rate",
-    colorLut: "Cyberpunk Neon 04",
-    description: "A fast-paced, high-retention reel designed for a tech CEO. Features kinetic captions, custom sound design, and 3D UI popups.",
-    techniques: ["Dynamic Subtitles", "3D UI Popups", "Sound Design", "Color LUT"],
-    embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    thumbnailUrl: "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
-  },
-  {
-    title: "YOUTUBE TECH MASTERCLASS",
-    category: "Motion Graphics",
-    client: "CodeForge Channel",
-    views: "1.1M Views",
-    retention: "72.0%",
-    cuts: "1.4s Cut Rate",
-    colorLut: "Teal & Orange Pro",
-    description: "Long-form coding and tech breakdown with custom motion graphics, diagram animations, and smooth speed ramps.",
-    techniques: ["Diagram FX", "B-Roll Sync", "Audio Mastering", "Speed Ramping"],
-    embedUrl: "https://www.youtube.com/embed/L_LUpnjgPso",
-    thumbnailUrl: "https://img.youtube.com/vi/L_LUpnjgPso/hqdefault.jpg",
-  },
-  {
-    title: "CRYPTO EMPIRE COMMERCIAL",
-    category: "Business Edit",
-    client: "Nexus Capital",
-    views: "4.8M Views",
-    retention: "91.2%",
-    cuts: "0.5s Cut Rate",
-    colorLut: "Matrix Emerald High-Contrast",
-    description: "High-octane commercial spot for a Web3 brand. Heavy glitch transitions, sound effects, and kinetic typography.",
-    techniques: ["Glitch Transitions", "3D Camera Tracking", "Custom Synth FX"],
-    embedUrl: "https://www.youtube.com/embed/fJ9rUzIMcZQ",
-    thumbnailUrl: "https://img.youtube.com/vi/fJ9rUzIMcZQ/hqdefault.jpg",
-  },
-];
-
 function HomePage() {
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
-  const [featuredReels, setFeaturedReels] = useState<ProjectData[]>(DEFAULT_REELS);
+  const [featuredReels, setFeaturedReels] = useState<ProjectData[]>([]);
 
   useEffect(() => {
     async function loadFeatured() {
       // 1. Load from local works
-      const local = getLocalWorks().filter((w) => w.status === "published");
+      const local = getLocalWorks().filter(isValidWork).filter((w) => w.status === "published");
       if (local.length > 0) {
         const mapped = local.map((w, idx) => {
           const yt = parseYouTubeUrl(w.embed_url || w.video_url);
@@ -97,6 +55,8 @@ function HomePage() {
           };
         });
         setFeaturedReels(mapped.slice(0, 6));
+      } else {
+        setFeaturedReels([]);
       }
 
       // 2. Sync from Supabase
@@ -109,9 +69,10 @@ function HomePage() {
           .limit(6);
 
         if (!error && data && data.length > 0) {
+          const remoteFiltered = data.filter(isValidWork);
           const allLocal = getLocalWorks();
           const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
-          const validData = data.filter((w: any) => !draftIds.has(w.id));
+          const validData = remoteFiltered.filter((w: any) => !draftIds.has(w.id));
 
           if (validData.length > 0) {
             const remoteMapped: ProjectData[] = validData.map((w: any, idx: number) => {
@@ -255,48 +216,60 @@ function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {featuredReels.map((p) => (
-              <div
-                key={p.title}
-                onClick={() => {
-                  sound.playClick(600);
-                  setSelectedProject(p);
-                }}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-card/80 p-5 transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_30px_rgba(255,26,26,0.3)] hover:-translate-y-1"
-              >
-                <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden flex items-center justify-center mb-4">
-                  {p.thumbnailUrl ? (
-                    <img
-                      src={p.thumbnailUrl}
-                      alt={p.title}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/40 via-background to-cyan-950/40 group-hover:scale-105 transition-transform duration-500" />
-                  )}
-                  <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-black shadow-lg group-hover:scale-110 transition-transform">
-                    <Play className="h-6 w-6 ml-1 fill-black" />
+          {featuredReels.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/80 bg-card/40 p-8 text-center max-w-lg mx-auto space-y-2">
+              <Film className="h-8 w-8 text-primary mx-auto opacity-75" />
+              <h3 className="font-impact text-lg uppercase tracking-wide text-foreground">
+                STUDIO REELS READY FOR UPLOADS
+              </h3>
+              <p className="text-xs text-muted-foreground font-mono">
+                All demo videos have been cleared! Use your Video Admin to publish video links here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {featuredReels.map((p) => (
+                <div
+                  key={p.title}
+                  onClick={() => {
+                    sound.playClick(600);
+                    setSelectedProject(p);
+                  }}
+                  className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-card/80 p-5 transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_30px_rgba(255,26,26,0.3)] hover:-translate-y-1"
+                >
+                  <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden flex items-center justify-center mb-4">
+                    {p.thumbnailUrl ? (
+                      <img
+                        src={p.thumbnailUrl}
+                        alt={p.title}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/40 via-background to-cyan-950/40 group-hover:scale-105 transition-transform duration-500" />
+                    )}
+                    <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-black shadow-lg group-hover:scale-110 transition-transform">
+                      <Play className="h-6 w-6 ml-1 fill-black" />
+                    </div>
+                    <span className="absolute top-2 right-2 rounded bg-black/80 px-2 py-0.5 font-mono text-[9px] text-cyan-400 border border-cyan-500/30 z-10">
+                      {p.views}
+                    </span>
                   </div>
-                  <span className="absolute top-2 right-2 rounded bg-black/80 px-2 py-0.5 font-mono text-[9px] text-cyan-400 border border-cyan-500/30 z-10">
-                    {p.views}
-                  </span>
-                </div>
 
-                <div className="space-y-2">
-                  <span className="font-mono text-[10px] text-primary uppercase font-bold tracking-wider">
-                    {p.category}
-                  </span>
-                  <h3 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors">
-                    {p.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {p.description}
-                  </p>
+                  <div className="space-y-2">
+                    <span className="font-mono text-[10px] text-primary uppercase font-bold tracking-wider">
+                      {p.category}
+                    </span>
+                    <h3 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                      {p.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {p.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* WHY BAYCON - CORE CAPABILITIES */}

@@ -20,6 +20,8 @@ import {
   saveLocalReview,
   deleteLocalReview,
   fileToDataUrl,
+  isValidWork,
+  clearAllWorks,
 } from "@/utils/storage";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -144,7 +146,7 @@ function AdminPage() {
 
   async function load() {
     setLoading(true);
-    const local = getLocalWorks();
+    const local = getLocalWorks().filter(isValidWork);
     setWorks(local);
     try {
       const { data } = await supabase
@@ -153,18 +155,26 @@ function AdminPage() {
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
       if (data && data.length > 0) {
+        const remoteFiltered = data.filter(isValidWork);
         const localMap = new Map(local.map((l) => [l.id, l]));
         // Respect local status changes (like unpublishing) over remote
-        const mergedRemote = data.map((remote: any) => {
+        const mergedRemote = remoteFiltered.map((remote: any) => {
           const localItem = localMap.get(remote.id);
           return localItem ? { ...remote, status: localItem.status } : remote;
         });
-        const remoteIds = new Set(data.map((d: any) => d.id));
+        const remoteIds = new Set(remoteFiltered.map((d: any) => d.id));
         const unmergedLocal = local.filter((l) => !remoteIds.has(l.id));
         setWorks([...unmergedLocal, ...mergedRemote]);
       }
     } catch {}
     setLoading(false);
+  }
+
+  async function handleClearAllWorks() {
+    if (!window.confirm("Are you sure you want to remove ALL videos from your portfolio? This will give you a completely clean slate to upload afresh.")) return;
+    clearAllWorks();
+    setWorks([]);
+    toast.success("All videos removed! Portfolio is clean and ready for new uploads.");
   }
 
   async function loadMessages() {
@@ -291,12 +301,22 @@ function AdminPage() {
             <h1 className="font-display text-3xl md:text-4xl font-black neon-text">Your Works</h1>
             <p className="text-sm text-muted-foreground mt-1">Upload videos, paste embed links, manage what's live on your site.</p>
           </div>
-          <button
-            onClick={() => { setEditing(null); setShowForm(true); }}
-            className="rounded-md bg-primary px-5 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 inline-flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" /> New Work
-          </button>
+          <div className="flex items-center gap-3">
+            {works.length > 0 && (
+              <button
+                onClick={handleClearAllWorks}
+                className="rounded-md border border-red-500/50 bg-red-950/30 px-4 py-3 text-xs font-bold uppercase tracking-wider text-red-400 hover:bg-red-900/50 hover:border-red-400 transition"
+              >
+                Clear All Videos
+              </button>
+            )}
+            <button
+              onClick={() => { setEditing(null); setShowForm(true); }}
+              className="rounded-md bg-primary px-5 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 inline-flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" /> New Work
+            </button>
+          </div>
         </div>
 
         {loading ? (

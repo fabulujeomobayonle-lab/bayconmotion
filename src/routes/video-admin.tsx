@@ -33,6 +33,8 @@ import {
   saveLocalWork,
   deleteLocalWork,
   toggleLocalWorkStatus,
+  isValidWork,
+  clearAllWorks,
   type Work,
 } from "@/utils/storage";
 import { VideoModal, type ProjectData } from "@/components/VideoModal";
@@ -97,8 +99,16 @@ function VideoAdminPage() {
 
   // Load works from storage
   const loadWorks = () => {
-    const list = getLocalWorks();
+    const list = getLocalWorks().filter(isValidWork);
     setWorks(list);
+  };
+
+  const handleClearAll = () => {
+    if (!window.confirm("Are you sure you want to remove ALL videos from your portfolio? This will wipe all existing videos so you can start uploading afresh.")) return;
+    sound.playGlitch();
+    clearAllWorks();
+    setWorks([]);
+    toast.success("All videos removed! Portfolio is clean and ready for fresh uploads.");
   };
 
   useEffect(() => {
@@ -709,8 +719,17 @@ function VideoAdminPage() {
               </p>
             </div>
 
-            {/* CATEGORY FILTER PILLS */}
-            <div className="flex flex-wrap items-center gap-1.5">
+            {/* ACTIONS & CATEGORY FILTER PILLS */}
+            <div className="flex flex-wrap items-center gap-2">
+              {works.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="rounded-lg border border-red-500/50 bg-red-950/40 px-3 py-1 font-mono text-[11px] font-bold text-red-400 hover:bg-red-900/60 hover:border-red-400 transition-all shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+                >
+                  Clear All Videos (Fresh Slate)
+                </button>
+              )}
               {["ALL", ...CATEGORIES].map((cat) => (
                 <button
                   key={cat}

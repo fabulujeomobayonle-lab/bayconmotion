@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { Film, Play } from "lucide-react";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
 import { parseYouTubeUrl } from "@/utils/video";
-import { getLocalWorks } from "@/utils/storage";
+import { getLocalWorks, isValidWork } from "@/utils/storage";
 
 const supabase = supabaseTyped as unknown as {
   from: (table: string) => any;
@@ -26,75 +26,6 @@ export const Route = createFileRoute("/portfolio")({
   component: PortfolioPage,
 });
 
-const DEFAULT_PROJECTS: ProjectData[] = [
-  {
-    title: "VIRAL SAAS FOUNDER REEL",
-    category: "Reels / Shorts",
-    client: "Alex Tech Founder",
-    views: "2.4M Views",
-    retention: "87.4%",
-    cuts: "0.8s Cut Rate",
-    colorLut: "Cyberpunk Neon 04",
-    description: "Fast-paced vertical talking head reel with kinetic captions, floating 3D browser popups, and sound FX drops.",
-    techniques: ["Dynamic Subtitles", "3D UI Popups", "Sound Design", "Color LUT"],
-  },
-  {
-    title: "YOUTUBE TECH MASTERCLASS",
-    category: "YouTube Long-Form",
-    client: "CodeForge Channel",
-    views: "1.1M Views",
-    retention: "72.0%",
-    cuts: "1.4s Cut Rate",
-    colorLut: "Teal & Orange Pro",
-    description: "14-minute tutorial video transformed into a cinema-grade masterclass with animated code highlights and diagrams.",
-    techniques: ["Diagram FX", "B-Roll Sync", "Audio Mastering", "Speed Ramping"],
-  },
-  {
-    title: "CRYPTO EMPIRE COMMERCIAL",
-    category: "Commercials",
-    client: "Nexus Capital",
-    views: "4.8M Views",
-    retention: "91.2%",
-    cuts: "0.5s Cut Rate",
-    colorLut: "Matrix Emerald High-Contrast",
-    description: "Aggressive, high-conversion commercial spot for a cryptocurrency trading brand with fast glitch cuts.",
-    techniques: ["Glitch Transitions", "3D Camera Tracking", "Custom Synth FX"],
-  },
-  {
-    title: "FITNESS EMPIRE RETENTION REEL",
-    category: "Reels / Shorts",
-    client: "Titan Fitness",
-    views: "3.2M Views",
-    retention: "89.5%",
-    cuts: "0.6s Cut Rate",
-    colorLut: "Vibrant Gold LUT",
-    description: "High-energy workout reel with custom motion zoom-ins, impact sound effects, and kinetic text tracking.",
-    techniques: ["Motion Zoom", "Audio Isolation", "Kinetic Tracking"],
-  },
-  {
-    title: "AI & ROBOTICS DOCUMENTARY",
-    category: "YouTube Long-Form",
-    client: "Future Mind Media",
-    views: "890K Views",
-    retention: "78.4%",
-    cuts: "1.2s Cut Rate",
-    colorLut: "Blade Runner Blue",
-    description: "22-minute documentary detailing the rise of AI models. Features archival footage restoration and 3D hologram titles.",
-    techniques: ["Hologram Titles", "Archive Restoration", "Multitrack Audio"],
-  },
-  {
-    title: "LUXURY BRAND LAUNCH AD",
-    category: "Commercials",
-    client: "Aura Fragrances",
-    views: "1.9M Views",
-    retention: "85.1%",
-    cuts: "0.9s Cut Rate",
-    colorLut: "Rich Film Grain 35mm",
-    description: "Cinematic commercial edit emphasizing smooth speed ramps, macro product shots, and orchestral sound design.",
-    techniques: ["35mm Film Grain", "Speed Ramping", "Orchestral Mixing"],
-  },
-];
-
 function PortfolioPage() {
   const [filter, setFilter] = useState<string>("ALL");
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
@@ -102,7 +33,7 @@ function PortfolioPage() {
 
   useEffect(() => {
     async function loadWorks() {
-      const localWorks = getLocalWorks().filter((w) => w.status === "published");
+      const localWorks = getLocalWorks().filter(isValidWork).filter((w) => w.status === "published");
       if (localWorks.length > 0) {
         const localMapped: ProjectData[] = localWorks.map((w) => {
           const yt = parseYouTubeUrl(w.embed_url || w.video_url);
@@ -122,6 +53,8 @@ function PortfolioPage() {
           };
         });
         setDbProjects(localMapped);
+      } else {
+        setDbProjects([]);
       }
 
       try {
@@ -133,35 +66,38 @@ function PortfolioPage() {
           .order("created_at", { ascending: false });
 
         if (!error && data && data.length > 0) {
-          const remoteMapped: ProjectData[] = data.map((w: any) => {
-            const yt = parseYouTubeUrl(w.embed_url || w.video_url);
-            return {
-              id: w.id,
-              title: w.title,
-              category: w.category || "General Editing",
-              description: w.description || "",
-              embedUrl: w.embed_url,
-              videoUrl: w.video_url,
-              thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
-              views: "Featured Work",
-              retention: "High Retention",
-              cuts: "Fast Paced",
-              colorLut: "Custom LUT",
-              techniques: ["Motion FX", "Color Grading", "Audio Sync"],
-            };
-          });
-
-          setDbProjects((prev) => {
-            const allLocal = getLocalWorks();
-            const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
-            const validRemote = remoteMapped.filter((w) => !draftIds.has(w.id));
-            const map = new Map();
-            [...validRemote, ...prev].forEach((item) => map.set(item.id || item.title, item));
-            return Array.from(map.values()).filter((item) => {
-              const localMatch = allLocal.find((l) => l.id === item.id);
-              return localMatch ? localMatch.status === "published" : true;
+          const validData = data.filter(isValidWork);
+          if (validData.length > 0) {
+            const remoteMapped: ProjectData[] = validData.map((w: any) => {
+              const yt = parseYouTubeUrl(w.embed_url || w.video_url);
+              return {
+                id: w.id,
+                title: w.title,
+                category: w.category || "General Editing",
+                description: w.description || "",
+                embedUrl: w.embed_url,
+                videoUrl: w.video_url,
+                thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
+                views: "Featured Work",
+                retention: "High Retention",
+                cuts: "Fast Paced",
+                colorLut: "Custom LUT",
+                techniques: ["Motion FX", "Color Grading", "Audio Sync"],
+              };
             });
-          });
+
+            setDbProjects((prev) => {
+              const allLocal = getLocalWorks();
+              const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
+              const validRemote = remoteMapped.filter((w) => !draftIds.has(w.id));
+              const map = new Map();
+              [...validRemote, ...prev].forEach((item) => map.set(item.id || item.title, item));
+              return Array.from(map.values()).filter((item) => {
+                const localMatch = allLocal.find((l) => l.id === item.id);
+                return localMatch ? localMatch.status === "published" : true;
+              });
+            });
+          }
         }
       } catch (err) {
         console.error("Error loading portfolio works:", err);
@@ -170,7 +106,7 @@ function PortfolioPage() {
     loadWorks();
   }, []);
 
-  const projects = dbProjects.length > 0 ? dbProjects : DEFAULT_PROJECTS;
+  const projects = dbProjects;
 
   const filteredProjects =
     filter === "ALL"
@@ -224,67 +160,90 @@ function PortfolioPage() {
 
         {/* PORTFOLIO GRID */}
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProjects.map((p) => {
-              const yt = parseYouTubeUrl(p.embedUrl || p.videoUrl);
-              const thumb = p.thumbnailUrl || yt.thumbnailUrl;
-
-              return (
-                <div
-                  key={p.id || p.title}
-                  onClick={() => {
-                    sound.playClick(600);
-                    setSelectedProject(p);
-                  }}
-                  className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-card/90 p-5 transition-all duration-300 hover:border-primary hover:shadow-[0_0_40px_rgba(255,26,26,0.3)] hover:-translate-y-1 backdrop-blur-xl"
+          {filteredProjects.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-border/80 bg-card/40 p-12 text-center max-w-xl mx-auto space-y-4 my-8">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/30 text-primary mx-auto">
+                <Film className="h-8 w-8" />
+              </div>
+              <h3 className="font-impact text-2xl uppercase tracking-wide text-foreground">
+                PORTFOLIO EMPTY / READY FOR NEW UPLOADS
+              </h3>
+              <p className="text-xs text-muted-foreground font-mono leading-relaxed">
+                All demo videos have been cleared! Your portfolio is now a clean slate. Videos you upload and set to "Published" in your Video Admin will appear here immediately.
+              </p>
+              <div className="pt-3">
+                <a
+                  href="/video-admin"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-black shadow-[0_0_20px_rgba(255,26,26,0.6)] hover:brightness-110 transition-all"
                 >
-                  <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden flex items-center justify-center mb-4">
-                    {thumb ? (
-                      <img
-                        src={thumb}
-                        alt={p.title}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-tr from-purple-950 via-background to-cyan-950 group-hover:scale-105 transition-transform duration-500" />
-                    )}
+                  <span>⚡ Go to Video Admin & Add Video</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredProjects.map((p) => {
+                const yt = parseYouTubeUrl(p.embedUrl || p.videoUrl);
+                const thumb = p.thumbnailUrl || yt.thumbnailUrl;
 
-                    <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-black shadow-[0_0_20px_rgba(255,26,26,0.8)] group-hover:scale-110 transition-transform">
-                      <Play className="h-7 w-7 ml-1 fill-black" />
+                return (
+                  <div
+                    key={p.id || p.title}
+                    onClick={() => {
+                      sound.playClick(600);
+                      setSelectedProject(p);
+                    }}
+                    className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-card/90 p-5 transition-all duration-300 hover:border-primary hover:shadow-[0_0_40px_rgba(255,26,26,0.3)] hover:-translate-y-1 backdrop-blur-xl"
+                  >
+                    <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden flex items-center justify-center mb-4">
+                      {thumb ? (
+                        <img
+                          src={thumb}
+                          alt={p.title}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-tr from-purple-950 via-background to-cyan-950 group-hover:scale-105 transition-transform duration-500" />
+                      )}
+
+                      <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-black shadow-[0_0_20px_rgba(255,26,26,0.8)] group-hover:scale-110 transition-transform">
+                        <Play className="h-7 w-7 ml-1 fill-black" />
+                      </div>
+
+                      {p.views && (
+                        <span className="absolute top-2 right-2 rounded bg-black/80 px-2.5 py-1 font-mono text-[9px] font-bold text-cyan-400 border border-cyan-500/40 z-10">
+                          {p.views}
+                        </span>
+                      )}
                     </div>
 
-                    {p.views && (
-                      <span className="absolute top-2 right-2 rounded bg-black/80 px-2.5 py-1 font-mono text-[9px] font-bold text-cyan-400 border border-cyan-500/40 z-10">
-                        {p.views}
-                      </span>
-                    )}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-[10px] font-mono text-primary font-bold">
+                        <span>{p.category}</span>
+                        {p.retention && <span className="text-emerald-400">RETENTION: {p.retention}</span>}
+                      </div>
+
+                      <h3 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                        {p.title}
+                      </h3>
+
+                      {p.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                          {p.description}
+                        </p>
+                      )}
+
+                      <div className="pt-2 flex items-center gap-1 font-mono text-[10px] text-cyan-400">
+                        <span>PLAY VIDEO & METRICS</span>
+                        <span>→</span>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[10px] font-mono text-primary font-bold">
-                      <span>{p.category}</span>
-                      {p.retention && <span className="text-emerald-400">RETENTION: {p.retention}</span>}
-                    </div>
-
-                    <h3 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors">
-                      {p.title}
-                    </h3>
-
-                    {p.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                        {p.description}
-                      </p>
-                    )}
-
-                    <div className="pt-2 flex items-center gap-1 font-mono text-[10px] text-cyan-400">
-                      <span>PLAY VIDEO & METRICS</span>
-                      <span>→</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </main>
 
