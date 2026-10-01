@@ -6,9 +6,16 @@ import { CyberCursor } from "@/components/CyberCursor";
 import { PageTransitionTrigger } from "@/components/PageTransition";
 import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
 import { sound } from "@/components/SoundSystem";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Play, Sparkles, Zap, Flame, Shield, ArrowRight, Star, Film, Sliders, CheckCircle2, TrendingUp } from "lucide-react";
 import { VideoModal, type ProjectData } from "@/components/VideoModal";
+import { getLocalWorks } from "@/utils/storage";
+import { parseYouTubeUrl } from "@/utils/video";
+import { supabase as supabaseTyped } from "@/integrations/supabase/client";
+
+const supabase = supabaseTyped as unknown as {
+  from: (table: string) => any;
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,44 +27,117 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
+const DEFAULT_REELS: ProjectData[] = [
+  {
+    title: "VIRAL SAAS FOUNDER REEL",
+    category: "Talking Head",
+    client: "Alex Tech Founder",
+    views: "2.4M Views",
+    retention: "87.4%",
+    cuts: "0.8s Cut Rate",
+    colorLut: "Cyberpunk Neon 04",
+    description: "A fast-paced, high-retention reel designed for a tech CEO. Features kinetic captions, custom sound design, and 3D UI popups.",
+    techniques: ["Dynamic Subtitles", "3D UI Popups", "Sound Design", "Color LUT"],
+    embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    thumbnailUrl: "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+  },
+  {
+    title: "YOUTUBE TECH MASTERCLASS",
+    category: "Motion Graphics",
+    client: "CodeForge Channel",
+    views: "1.1M Views",
+    retention: "72.0%",
+    cuts: "1.4s Cut Rate",
+    colorLut: "Teal & Orange Pro",
+    description: "Long-form coding and tech breakdown with custom motion graphics, diagram animations, and smooth speed ramps.",
+    techniques: ["Diagram FX", "B-Roll Sync", "Audio Mastering", "Speed Ramping"],
+    embedUrl: "https://www.youtube.com/embed/L_LUpnjgPso",
+    thumbnailUrl: "https://img.youtube.com/vi/L_LUpnjgPso/hqdefault.jpg",
+  },
+  {
+    title: "CRYPTO EMPIRE COMMERCIAL",
+    category: "Business Edit",
+    client: "Nexus Capital",
+    views: "4.8M Views",
+    retention: "91.2%",
+    cuts: "0.5s Cut Rate",
+    colorLut: "Matrix Emerald High-Contrast",
+    description: "High-octane commercial spot for a Web3 brand. Heavy glitch transitions, sound effects, and kinetic typography.",
+    techniques: ["Glitch Transitions", "3D Camera Tracking", "Custom Synth FX"],
+    embedUrl: "https://www.youtube.com/embed/fJ9rUzIMcZQ",
+    thumbnailUrl: "https://img.youtube.com/vi/fJ9rUzIMcZQ/hqdefault.jpg",
+  },
+];
+
 function HomePage() {
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
+  const [featuredReels, setFeaturedReels] = useState<ProjectData[]>(DEFAULT_REELS);
 
-  const featuredReels: ProjectData[] = [
-    {
-      title: "VIRAL SAAS FOUNDER REEL",
-      category: "Talking Head & Reels",
-      client: "Alex Tech Founder",
-      views: "2.4M Views",
-      retention: "87.4%",
-      cuts: "0.8s Cut Rate",
-      colorLut: "Cyberpunk Neon 04",
-      description: "A fast-paced, high-retention reel designed for a tech CEO. Features kinetic captions, custom sound design, and 3D UI popups.",
-      techniques: ["Dynamic Subtitles", "3D UI Popups", "Sound Design", "Color LUT"],
-    },
-    {
-      title: "YOUTUBE TECH MASTERCLASS",
-      category: "YouTube Long-Form",
-      client: "CodeForge Channel",
-      views: "1.1M Views",
-      retention: "72.0%",
-      cuts: "1.4s Cut Rate",
-      colorLut: "Teal & Orange Pro",
-      description: "Long-form coding and tech breakdown with custom motion graphics, diagram animations, and smooth speed ramps.",
-      techniques: ["Diagram FX", "B-Roll Sync", "Audio Mastering", "Speed Ramping"],
-    },
-    {
-      title: "CRYPTO EMPIRE COMMERCIAL",
-      category: "Brand Commercial",
-      client: "Nexus Capital",
-      views: "4.8M Views",
-      retention: "91.2%",
-      cuts: "0.5s Cut Rate",
-      colorLut: "Matrix Emerald High-Contrast",
-      description: "High-octane commercial spot for a Web3 brand. Heavy glitch transitions, sound effects, and kinetic typography.",
-      techniques: ["Glitch Transitions", "3D Camera Tracking", "Custom Synth FX"],
-    },
-  ];
+  useEffect(() => {
+    async function loadFeatured() {
+      // 1. Load from local works
+      const local = getLocalWorks().filter((w) => w.status === "published");
+      if (local.length > 0) {
+        const mapped = local.map((w, idx) => {
+          const yt = parseYouTubeUrl(w.embed_url || w.video_url);
+          return {
+            id: w.id,
+            title: w.title,
+            category: w.category || "General Editing",
+            client: "Baycon Client",
+            views: `Viral Pick #${idx + 1}`,
+            retention: "88.2% Retention",
+            cuts: "0.8s Cut Rate",
+            colorLut: "Cinema Grade Pro",
+            description: w.description || "High impact video edit engineered for maximum retention.",
+            techniques: ["Kinetic Captions", "Sound FX Drops", "Color Grading", "Motion Graphics"],
+            embedUrl: w.embed_url,
+            videoUrl: w.video_url,
+            thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
+          };
+        });
+        setFeaturedReels(mapped.slice(0, 6));
+      }
+
+      // 2. Sync from Supabase
+      try {
+        const { data, error } = await supabase
+          .from("works")
+          .select("*")
+          .eq("status", "published")
+          .order("sort_order", { ascending: true })
+          .limit(6);
+
+        if (!error && data && data.length > 0) {
+          const remoteMapped: ProjectData[] = data.map((w: any, idx: number) => {
+            const yt = parseYouTubeUrl(w.embed_url || w.video_url);
+            return {
+              id: w.id,
+              title: w.title,
+              category: w.category || "General Editing",
+              client: "Baycon Client",
+              views: `Viral Pick #${idx + 1}`,
+              retention: "88.2% Retention",
+              cuts: "0.8s Cut Rate",
+              colorLut: "Cinema Grade Pro",
+              description: w.description || "High impact video edit engineered for maximum retention.",
+              techniques: ["Kinetic Captions", "Sound FX Drops", "Color Grading", "Motion Graphics"],
+              embedUrl: w.embed_url,
+              videoUrl: w.video_url,
+              thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
+            };
+          });
+
+          setFeaturedReels(remoteMapped);
+        }
+      } catch (err) {
+        console.error("Error loading home featured reels:", err);
+      }
+    }
+
+    loadFeatured();
+  }, []);
+
 
   return (
     <div className="relative min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary selection:text-black">
@@ -180,11 +260,19 @@ function HomePage() {
                 className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-card/80 p-5 transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_30px_rgba(255,26,26,0.3)] hover:-translate-y-1"
               >
                 <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden flex items-center justify-center mb-4">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/40 via-background to-cyan-950/40 group-hover:scale-105 transition-transform duration-500" />
-                  <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-primary text-black shadow-lg group-hover:scale-110 transition-transform">
+                  {p.thumbnailUrl ? (
+                    <img
+                      src={p.thumbnailUrl}
+                      alt={p.title}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/40 via-background to-cyan-950/40 group-hover:scale-105 transition-transform duration-500" />
+                  )}
+                  <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-black shadow-lg group-hover:scale-110 transition-transform">
                     <Play className="h-6 w-6 ml-1 fill-black" />
                   </div>
-                  <span className="absolute top-2 right-2 rounded bg-black/80 px-2 py-0.5 font-mono text-[9px] text-cyan-400 border border-cyan-500/30">
+                  <span className="absolute top-2 right-2 rounded bg-black/80 px-2 py-0.5 font-mono text-[9px] text-cyan-400 border border-cyan-500/30 z-10">
                     {p.views}
                   </span>
                 </div>

@@ -17,6 +17,13 @@ import { Route as ShowcaseRouteImport } from './routes/showcase'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as VideoAdminRouteImport } from './routes/video-admin'
+
+const VideoAdminRoute = VideoAdminRouteImport.update({
+  id: '/video-admin',
+  path: '/video-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/pricing': typeof PricingRoute
   '/contact': typeof ContactRoute
+  '/video-admin': typeof VideoAdminRoute
 }
 
 export interface FileRoutesByTo {
@@ -99,6 +107,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/pricing': typeof PricingRoute
   '/contact': typeof ContactRoute
+  '/video-admin': typeof VideoAdminRoute
 }
 
 export interface FileRoutesById {
@@ -113,14 +122,15 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/pricing': typeof PricingRoute
   '/contact': typeof ContactRoute
+  '/video-admin': typeof VideoAdminRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/admin' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact'
+  fullPaths: '/' | '/auth' | '/admin' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact' | '/video-admin'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/admin' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact'
-  id: '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/admin' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact'
+  to: '/' | '/auth' | '/admin' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact' | '/video-admin'
+  id: '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/admin' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact' | '/video-admin'
   fileRoutesById: FileRoutesById
 }
 
@@ -134,6 +144,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   PricingRoute: typeof PricingRoute
   ContactRoute: typeof ContactRoute
+  VideoAdminRoute: typeof VideoAdminRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -208,6 +219,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/video-admin': {
+      id: '/video-admin'
+      path: '/video-admin'
+      fullPath: '/video-admin'
+      preLoaderRoute: typeof VideoAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -232,6 +250,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   PricingRoute: PricingRoute,
   ContactRoute: ContactRoute,
+  VideoAdminRoute: VideoAdminRoute,
 }
 
 export const routeTree = rootRouteImport
