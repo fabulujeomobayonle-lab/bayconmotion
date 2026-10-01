@@ -81,6 +81,13 @@ export function isValidWork(w: any): boolean {
   ) {
     return false;
   }
+  
+  // Filter out by specific hardcoded youtube IDs to be absolutely sure
+  const url = (w.embed_url || w.video_url || "").toLowerCase();
+  if (url.includes("7ecfqbweiiu") || url.includes("hofw5drqrpw")) {
+    return false;
+  }
+
   return true;
 }
 
