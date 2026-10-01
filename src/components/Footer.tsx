@@ -79,28 +79,28 @@ export function Footer() {
             <ul className="space-y-2 text-xs text-muted-foreground font-mono">
               <li>
                 <Link to="/" className="hover:text-primary transition-colors flex items-center gap-1">
-                  <span>> Home Portal</span>
+                  <span>&gt; Home Portal</span>
                 </Link>
               </li>
               <li>
                 <Link to="/services" className="hover:text-primary transition-colors flex items-center gap-1">
-                  <span>> Editing Services</span>
+                  <span>&gt; Editing Services</span>
                 </Link>
               </li>
               <li>
                 <Link to="/portfolio" className="hover:text-primary transition-colors flex items-center gap-1">
-                  <span>> Video Portfolio</span>
+                  <span>&gt; Video Portfolio</span>
                 </Link>
               </li>
               <li>
                 <Link to="/showcase" className="hover:text-cyan-400 transition-colors flex items-center gap-1">
-                  <span>> Motion FX Lab</span>
+                  <span>&gt; Motion FX Lab</span>
                   <span className="text-[8px] bg-cyan-500/20 text-cyan-400 px-1 rounded">CRAZY</span>
                 </Link>
               </li>
               <li>
                 <Link to="/about" className="hover:text-primary transition-colors flex items-center gap-1">
-                  <span>> Inside Baycon</span>
+                  <span>&gt; Inside Baycon</span>
                 </Link>
               </li>
             </ul>
@@ -115,17 +115,17 @@ export function Footer() {
             <ul className="space-y-2 text-xs text-muted-foreground font-mono">
               <li>
                 <Link to="/pricing" className="hover:text-primary transition-colors flex items-center gap-1">
-                  <span>> Pricing & Plans</span>
+                  <span>&gt; Pricing & Plans</span>
                 </Link>
               </li>
               <li>
                 <Link to="/contact" className="hover:text-primary transition-colors flex items-center gap-1">
-                  <span>> Custom Project Quote</span>
+                  <span>&gt; Custom Project Quote</span>
                 </Link>
               </li>
               <li>
                 <Link to="/admin" className="hover:text-primary transition-colors flex items-center gap-1 text-muted-foreground/80">
-                  <span>> Admin Dashboard</span>
+                  <span>&gt; Admin Dashboard</span>
                 </Link>
               </li>
             </ul>
