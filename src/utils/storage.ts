@@ -44,11 +44,30 @@ export function isValidWork(w: any): boolean {
   if (!w.id || typeof w.id !== "string") return false;
   if (w.id.startsWith("demo-")) return false;
   if (BANNED_WORK_IDS.has(w.id)) return false;
+
+  // Filter out the 2 stale initial featured edits by title as well
+  const lowerTitle = (w.title || "").toLowerCase().trim();
+  if (
+    lowerTitle.includes("turning raw footage") ||
+    lowerTitle.includes("high-retention youtube edit") ||
+    lowerTitle.includes("luxury brand launch ad") ||
+    lowerTitle.includes("fintech app 3d explainer")
+  ) {
+    return false;
+  }
   return true;
 }
 
 const STORAGE_KEY_WORKS = "baycon_works_v2";
 const STORAGE_KEY_REVIEWS = "baycon_reviews_v2";
+
+try {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("baycon_works");
+    localStorage.removeItem("baycon_works_v1");
+    localStorage.removeItem("baycon_demo_works");
+  }
+} catch {}
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function isUuid(id: string | null | undefined): boolean {
