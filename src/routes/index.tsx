@@ -29,81 +29,6 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
-  const [featuredReels, setFeaturedReels] = useState<ProjectData[]>([]);
-
-  useEffect(() => {
-    async function loadFeatured() {
-      // 1. Load from local works
-      const local = getLocalWorks().filter(isValidWork).filter((w) => w.status === "published");
-      if (local.length > 0) {
-        const mapped = local.map((w, idx) => {
-          const yt = parseYouTubeUrl(w.embed_url || w.video_url);
-          return {
-            id: w.id,
-            title: w.title,
-            category: w.category || "General Editing",
-            client: "Baycon Client",
-            views: `Viral Pick #${idx + 1}`,
-            retention: "88.2% Retention",
-            cuts: "0.8s Cut Rate",
-            colorLut: "Cinema Grade Pro",
-            description: w.description || "High impact video edit engineered for maximum retention.",
-            techniques: ["Kinetic Captions", "Sound FX Drops", "Color Grading", "Motion Graphics"],
-            embedUrl: w.embed_url,
-            videoUrl: w.video_url,
-            thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
-          };
-        });
-        setFeaturedReels(mapped.slice(0, 6));
-      } else {
-        setFeaturedReels([]);
-      }
-
-      // 2. Sync from Supabase
-      try {
-        const { data, error } = await supabase
-          .from("works")
-          .select("*")
-          .eq("status", "published")
-          .order("sort_order", { ascending: true })
-          .limit(6);
-
-        if (!error && data && data.length > 0) {
-          const remoteFiltered = data.filter(isValidWork);
-          const allLocal = getLocalWorks();
-          const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
-          const validData = remoteFiltered.filter((w: any) => !draftIds.has(w.id));
-
-          if (validData.length > 0) {
-            const remoteMapped: ProjectData[] = validData.map((w: any, idx: number) => {
-              const yt = parseYouTubeUrl(w.embed_url || w.video_url);
-              return {
-                id: w.id,
-                title: w.title,
-                category: w.category || "General Editing",
-                client: "Baycon Client",
-                views: `Viral Pick #${idx + 1}`,
-                retention: "88.2% Retention",
-                cuts: "0.8s Cut Rate",
-                colorLut: "Cinema Grade Pro",
-                description: w.description || "High impact video edit engineered for maximum retention.",
-                techniques: ["Kinetic Captions", "Sound FX Drops", "Color Grading", "Motion Graphics"],
-                embedUrl: w.embed_url,
-                videoUrl: w.video_url,
-                thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
-              };
-            });
-
-            setFeaturedReels(remoteMapped);
-          }
-        }
-      } catch (err) {
-        console.error("Error loading home featured reels:", err);
-      }
-    }
-
-    loadFeatured();
-  }, []);
 
 
   return (
@@ -196,80 +121,26 @@ function HomePage() {
           <BeforeAfterSlider />
         </section>
 
-        {/* FEATURED WORK REELS */}
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10">
-            <div>
-              <h2 className="font-impact text-2xl sm:text-4xl text-foreground uppercase tracking-wide">
-                FEATURED <span className="text-cyan-400 neon-text">EDITS</span>
-              </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground font-mono mt-1">
-                Recent client reels, YouTube long-form, & commercial spots.
-              </p>
-            </div>
-
+        {/* PORTFOLIO SHOWCASE CTA */}
+        <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+          <div className="rounded-3xl border border-primary/20 bg-card/40 p-8 md:p-12 backdrop-blur-sm text-center shadow-[0_0_30px_rgba(255,26,26,0.1)] hover:border-primary/50 transition-colors">
+            <Film className="h-12 w-12 text-primary mx-auto mb-6" />
+            <h2 className="font-impact text-3xl sm:text-5xl text-foreground uppercase tracking-wide mb-4">
+              OUR <span className="text-cyan-400 neon-text">PORTFOLIO</span>
+            </h2>
+            <p className="text-sm text-muted-foreground font-mono max-w-xl mx-auto mb-8">
+              Explore our full collection of client reels, YouTube long-form content, and commercial spots. See exactly how we engineer videos for maximum retention.
+            </p>
+            
             <Link
               to="/portfolio"
-              className="font-mono text-xs font-bold text-primary hover:underline flex items-center gap-1"
+              onMouseEnter={() => sound.playClick(600)}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 font-display text-sm font-bold tracking-widest text-black shadow-[0_0_20px_rgba(255,26,26,0.6)] hover:bg-primary/90 transition-all hover:scale-105"
             >
-              <span>VIEW FULL PORTFOLIO →</span>
+              <span>VIEW FULL PORTFOLIO</span>
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-
-          {featuredReels.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/80 bg-card/40 p-8 text-center max-w-lg mx-auto space-y-2">
-              <Film className="h-8 w-8 text-primary mx-auto opacity-75" />
-              <h3 className="font-impact text-lg uppercase tracking-wide text-foreground">
-                STUDIO REELS READY FOR UPLOADS
-              </h3>
-              <p className="text-xs text-muted-foreground font-mono">
-                All demo videos have been cleared! Use your Video Admin to publish video links here.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {featuredReels.map((p) => (
-                <div
-                  key={p.title}
-                  onClick={() => {
-                    sound.playClick(600);
-                    setSelectedProject(p);
-                  }}
-                  className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-card/80 p-5 transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_30px_rgba(255,26,26,0.3)] hover:-translate-y-1"
-                >
-                  <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden flex items-center justify-center mb-4">
-                    {p.thumbnailUrl ? (
-                      <img
-                        src={p.thumbnailUrl}
-                        alt={p.title}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/40 via-background to-cyan-950/40 group-hover:scale-105 transition-transform duration-500" />
-                    )}
-                    <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-black shadow-lg group-hover:scale-110 transition-transform">
-                      <Play className="h-6 w-6 ml-1 fill-black" />
-                    </div>
-                    <span className="absolute top-2 right-2 rounded bg-black/80 px-2 py-0.5 font-mono text-[9px] text-cyan-400 border border-cyan-500/30 z-10">
-                      {p.views}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <span className="font-mono text-[10px] text-primary uppercase font-bold tracking-wider">
-                      {p.category}
-                    </span>
-                    <h3 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors">
-                      {p.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {p.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </section>
 
         {/* WHY BAYCON - CORE CAPABILITIES */}
