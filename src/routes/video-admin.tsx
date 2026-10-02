@@ -111,6 +111,39 @@ function VideoAdminPage() {
     toast.success("All videos removed! Portfolio is clean and ready for fresh uploads.");
   };
 
+  const handleSyncToCloud = async () => {
+    sound.playClick(600);
+    const toastId = toast.loading("Syncing local videos to Supabase cloud...");
+    const local = getLocalWorks().filter(isValidWork);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    let lastError = null;
+
+    // We must import supabase dynamically or use the existing one if it's imported.
+    // Let's import it at the top of the file if not already. Wait, it is imported in storage.ts, let's just import it here.
+    const { supabase } = await import("@/integrations/supabase/client");
+
+    for (const work of local) {
+      const { error } = await supabase.from("works").upsert(work);
+      if (error) {
+        console.error("Sync error for work:", work.title, error);
+        errorCount++;
+        lastError = error;
+      } else {
+        successCount++;
+      }
+    }
+
+    if (errorCount > 0) {
+      sound.playGlitch();
+      toast.error(`Sync failed for ${errorCount} videos. Last error: ${lastError?.message || "Unknown"}`, { id: toastId });
+    } else {
+      sound.playSuccess();
+      toast.success(`Successfully synced ${successCount} videos to the cloud!`, { id: toastId });
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       loadWorks();
@@ -721,13 +754,22 @@ function VideoAdminPage() {
 
             {/* ACTIONS & CATEGORY FILTER PILLS */}
             <div className="flex flex-wrap items-center gap-2">
-              {works.length > 0 && (
                 <button
                   type="button"
                   onClick={handleClearAll}
                   className="rounded-lg border border-red-500/50 bg-red-950/40 px-3 py-1 font-mono text-[11px] font-bold text-red-400 hover:bg-red-900/60 hover:border-red-400 transition-all shadow-[0_0_10px_rgba(239,68,68,0.2)]"
                 >
-                  Clear All Videos (Fresh Slate)
+                  Clear All Videos
+                </button>
+              )}
+              {works.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleSyncToCloud}
+                  className="rounded-lg border border-cyan-500/50 bg-cyan-950/40 px-3 py-1 font-mono text-[11px] font-bold text-cyan-400 hover:bg-cyan-900/60 hover:border-cyan-400 transition-all shadow-[0_0_10px_rgba(34,211,238,0.2)] flex items-center gap-1"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Force Sync to Cloud
                 </button>
               )}
               {["ALL", ...CATEGORIES].map((cat) => (
