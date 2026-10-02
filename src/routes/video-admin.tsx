@@ -754,6 +754,7 @@ function VideoAdminPage() {
 
             {/* ACTIONS & CATEGORY FILTER PILLS */}
             <div className="flex flex-wrap items-center gap-2">
+              {works.length > 0 && (
                 <button
                   type="button"
                   onClick={handleClearAll}
