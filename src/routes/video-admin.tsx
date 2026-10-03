@@ -125,7 +125,12 @@ function VideoAdminPage() {
     const { supabase } = await import("@/integrations/supabase/client");
 
     for (const work of local) {
-      const { error } = await supabase.from("works").upsert(work);
+      const supabaseWork = { ...work };
+      if (supabaseWork.category === "Business Edit" || supabaseWork.category === "Random Edit") {
+        supabaseWork.category = "General Editing";
+      }
+
+      const { error } = await supabase.from("works").upsert(supabaseWork);
       if (error) {
         console.error("Sync error for work:", work.title, error);
         errorCount++;
