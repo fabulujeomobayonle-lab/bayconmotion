@@ -100,15 +100,7 @@ function AuthPage() {
           Authorized personnel only
         </p>
 
-        <div className="mt-4 pt-4 border-t border-border/60 text-center">
-          <Link
-            to="/video-admin"
-            className="text-xs font-mono text-cyan-400 hover:text-primary transition-colors flex items-center justify-center gap-1.5"
-          >
-            <span>⚡ Open Dedicated Video Admin</span>
-            <span>→</span>
-          </Link>
-        </div>
+
       </div>
     </div>
   );

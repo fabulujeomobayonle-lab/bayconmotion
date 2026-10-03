@@ -20,7 +20,7 @@ export function Footer() {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "v") {
         e.preventDefault();
         sound.playSuccess();
-        window.location.href = "/video-admin";
+        window.location.href = "/admin";
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -38,7 +38,7 @@ export function Footer() {
     if (next >= 5) {
       sound.playSuccess();
       setSecretClicks(0);
-      window.location.href = "/video-admin";
+      window.location.href = "/admin";
     }
   };
 
@@ -175,14 +175,7 @@ export function Footer() {
             <span className="hover:text-foreground cursor-pointer" onClick={() => sound.playGlitch()}>
               FPS: 60.0
             </span>
-            <span>•</span>
-            <Link
-              to="/video-admin"
-              className="text-[10px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1"
-              title="Dedicated Video Admin"
-            >
-              <span>⚡ Video Admin</span>
-            </Link>
+
           </div>
         </div>
       </div>

@@ -173,10 +173,10 @@ function PortfolioPage() {
               </p>
               <div className="pt-3">
                 <a
-                  href="/video-admin"
+                  href="/admin"
                   className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-black shadow-[0_0_20px_rgba(255,26,26,0.6)] hover:brightness-110 transition-all"
                 >
-                  <span>⚡ Go to Video Admin & Add Video</span>
+                  <span>⚡ Go to Admin & Add Video</span>
                   <span>→</span>
                 </a>
               </div>

@@ -243,12 +243,7 @@ function AdminPage() {
             BAYCON <span className="text-muted-foreground text-xs ml-2 tracking-normal font-normal">/ admin</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link
-              to="/video-admin"
-              className="rounded-md bg-primary/20 border border-primary text-primary px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider hover:bg-primary hover:text-black transition flex items-center gap-1.5"
-            >
-              <span>⚡ Quick Video Admin</span>
-            </Link>
+
             <Link to="/" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
               View Site <ExternalLink className="h-3 w-3" />
             </Link>
