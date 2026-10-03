@@ -123,11 +123,6 @@ export function Footer() {
                   <span>&gt; Custom Project Quote</span>
                 </Link>
               </li>
-              <li>
-                <Link to="/admin" className="hover:text-primary transition-colors flex items-center gap-1 text-muted-foreground/80">
-                  <span>&gt; Admin Dashboard</span>
-                </Link>
-              </li>
             </ul>
           </div>
 

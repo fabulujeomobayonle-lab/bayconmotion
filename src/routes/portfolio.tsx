@@ -169,17 +169,8 @@ function PortfolioPage() {
                 PORTFOLIO EMPTY / READY FOR NEW UPLOADS
               </h3>
               <p className="text-xs text-muted-foreground font-mono leading-relaxed">
-                All demo videos have been cleared! Your portfolio is now a clean slate. Videos you upload and set to "Published" in your Video Admin will appear here immediately.
+                All demo videos have been cleared! Your portfolio is now a clean slate. Videos you upload and set to "Published" in your Admin will appear here immediately.
               </p>
-              <div className="pt-3">
-                <a
-                  href="/admin"
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-black shadow-[0_0_20px_rgba(255,26,26,0.6)] hover:brightness-110 transition-all"
-                >
-                  <span>⚡ Go to Admin & Add Video</span>
-                  <span>→</span>
-                </a>
-              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
