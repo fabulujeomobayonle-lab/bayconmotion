@@ -444,7 +444,8 @@ function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () =
 
   async function uploadFile(bucket: string, file: File): Promise<string> {
     const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${crypto.randomUUID()}.${ext}`;
+    const randomStr = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+    const path = `${randomStr}.${ext}`;
     const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, {
       cacheControl: "31536000",
       upsert: false,
@@ -619,7 +620,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 async function uploadMediaFile(bucket: string, file: File): Promise<string> {
   const ext = file.name.split(".").pop() ?? "bin";
-  const path = `${crypto.randomUUID()}.${ext}`;
+  const randomStr = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+  const path = `${randomStr}.${ext}`;
 
   const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: "31536000",

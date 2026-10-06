@@ -1,5 +1,12 @@
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
 
+const generateId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return 'uuid-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now().toString(36);
+};
+
 const supabase = supabaseTyped as unknown as {
   from: (table: string) => any;
 };
@@ -151,7 +158,7 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
 
     // If existing item has a non-UUID demo ID, upgrade it to a real UUID so Supabase accepts it
     if (!isUuid(finalId)) {
-      finalId = crypto.randomUUID();
+      finalId = generateId();
     }
 
     updatedWork = {
@@ -185,7 +192,7 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
   } else {
     updatedWork = {
       ...work,
-      id: crypto.randomUUID(),
+      id: generateId(),
       sort_order: current.length + 1,
       created_at: new Date().toISOString(),
     };
@@ -248,7 +255,7 @@ export function toggleLocalWorkStatus(id: string): "published" | "draft" {
         await supabase.from("works").update({ status: newStatus }).eq("id", id);
       } else if (targetWork) {
         // Upgrade demo work to UUID and upsert so database recognizes it
-        const newUuid = crypto.randomUUID();
+        const newUuid = generateId();
         const upgraded = { ...targetWork, id: newUuid };
         
         const supabaseWork = { ...upgraded };
@@ -292,7 +299,7 @@ export function saveLocalReview(review: Omit<ClientReview, "id" | "created_at" |
   } else {
     updated = {
       ...review,
-      id: crypto.randomUUID(),
+      id: generateId(),
       sort_order: current.length + 1,
       created_at: new Date().toISOString(),
     };
