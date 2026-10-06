@@ -1,15 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
-// Database type isn't regenerated yet for new tables; use an untyped facade for table ops.
-const supabase = supabaseTyped as unknown as {
-  auth: typeof supabaseTyped.auth;
-  storage: typeof supabaseTyped.storage;
-  from: (table: string) => any;
-};
-import { LogOut, Pencil, Trash2, Plus, Upload, ExternalLink } from "lucide-react";
+import { LogOut, Trash2, ExternalLink, Youtube, MessageSquare, Star, Film, CheckCircle2 } from "lucide-react";
 import { parseYouTubeUrl } from "@/utils/video";
 import {
   getLocalWorks,
@@ -17,35 +10,22 @@ import {
   deleteLocalWork,
   toggleLocalWorkStatus,
   getLocalReviews,
-  saveLocalReview,
-  deleteLocalReview,
-  fileToDataUrl,
   isValidWork,
   clearAllWorks,
+  type Work,
+  type ClientReview
 } from "@/utils/storage";
+
+const supabase = supabaseTyped as unknown as { from: (table: string) => any };
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
-    meta: [
-      { title: "Admin — Baycon CMS" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Admin — Baycon CMS" }, { name: "robots", content: "noindex" }],
   }),
   component: AdminPage,
 });
 
-type Work = {
-  id: string;
-  title: string;
-  category: "Talking Head" | "Motion Graphics" | "Random Edit" | "Business Edit" | "General Editing";
-  description: string | null;
-  status: "draft" | "published";
-  embed_url: string | null;
-  video_url: string | null;
-  thumbnail_url: string | null;
-  sort_order: number;
-  created_at: string;
-};
+const CATEGORIES = ["Motion Graphics", "Talking Head", "Random Edit", "Business Edit"];
 
 type Message = {
   id: string;
@@ -57,107 +37,28 @@ type Message = {
   created_at: string;
 };
 
-type ClientReview = {
-  id: string;
-  client_name: string;
-  client_role: string | null;
-  quote: string;
-  rating: number;
-  project_title: string | null;
-  embed_url: string | null;
-  video_url: string | null;
-  thumbnail_url: string | null;
-  status: "draft" | "published";
-  sort_order: number;
-  created_at: string;
-};
-
-const reviewSchema = z.object({
-  client_name: z.string().trim().min(1, "Client name is required").max(120),
-  client_role: z.string().trim().max(160).optional().or(z.literal("")),
-  project_title: z.string().trim().max(160).optional().or(z.literal("")),
-  quote: z.string().trim().min(1, "Review text is required").max(1000),
-  rating: z.coerce.number().int().min(1).max(5),
-  status: z.enum(["draft", "published"]),
-  embed_url: z.string().trim().max(1000).optional().or(z.literal("")),
-});
-
-const CATEGORIES = ["Motion Graphics", "Talking Head", "Random Edit", "Business Edit"] as const;
-const LONG_EXPIRY = 60 * 60 * 24 * 365 * 50; // ~50 years
-
-const workSchema = z.object({
-  title: z.string().trim().min(1, "Title is required").max(120),
-  category: z.enum(CATEGORIES),
-  description: z.string().trim().max(1000).optional().or(z.literal("")),
-  status: z.enum(["draft", "published"]),
-  embed_url: z.string().trim().max(1000).optional().or(z.literal("")),
-});
-
 function AdminPage() {
   const navigate = useNavigate();
   const [works, setWorks] = useState<Work[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<Work | null>(null);
-  const [showForm, setShowForm] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [reviews, setReviews] = useState<ClientReview[]>([]);
-  const [editingReview, setEditingReview] = useState<ClientReview | null>(null);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [tab, setTab] = useState<"works" | "reviews" | "messages">("works");
+  const [tab, setTab] = useState<"add_youtube" | "works" | "reviews" | "messages">("add_youtube");
+  const [isSaving, setIsSaving] = useState(false);
 
-  async function loadReviews() {
-    const local = getLocalReviews();
-    setReviews(local);
-    try {
-      const { data } = await supabase
-        .from("client_reviews")
-        .select("*")
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: false });
-      if (data && data.length > 0) {
-        setReviews(data as unknown as ClientReview[]);
-      }
-    } catch {}
-  }
-
-  async function deleteReview(id: string) {
-    if (!confirm("Delete this client review?")) return;
-    deleteLocalReview(id);
-    toast.success("Deleted");
+  useEffect(() => {
+    loadWorks();
+    loadMessages();
     loadReviews();
-  }
+  }, []);
 
-  async function toggleReviewStatus(r: ClientReview) {
-    const next = r.status === "published" ? "draft" : "published";
-    saveLocalReview({
-      id: r.id,
-      client_name: r.client_name,
-      client_role: r.client_role,
-      quote: r.quote,
-      rating: r.rating,
-      project_title: r.project_title,
-      embed_url: r.embed_url,
-      video_url: r.video_url,
-      thumbnail_url: r.thumbnail_url,
-      status: next,
-    });
-    loadReviews();
-  }
-
-  async function load() {
-    setLoading(true);
+  async function loadWorks() {
     const local = getLocalWorks().filter(isValidWork);
     setWorks(local);
     try {
-      const { data } = await supabase
-        .from("works")
-        .select("*")
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: false });
+      const { data } = await supabase.from("works").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
       if (data && data.length > 0) {
         const remoteFiltered = data.filter(isValidWork);
         const localMap = new Map(local.map((l) => [l.id, l]));
-        // Respect local status changes (like unpublishing) over remote
         const mergedRemote = remoteFiltered.map((remote: any) => {
           const localItem = localMap.get(remote.id);
           return localItem ? { ...remote, status: localItem.status } : remote;
@@ -167,720 +68,278 @@ function AdminPage() {
         setWorks([...unmergedLocal, ...mergedRemote]);
       }
     } catch {}
-    setLoading(false);
   }
 
-  async function handleClearAllWorks() {
-    if (!window.confirm("Are you sure you want to remove ALL videos from your portfolio? This will give you a completely clean slate to upload afresh.")) return;
-    clearAllWorks();
-    setWorks([]);
-    toast.success("All videos removed! Portfolio is clean and ready for new uploads.");
+  async function loadReviews() {
+    const local = getLocalReviews();
+    setReviews(local);
+    try {
+      const { data } = await supabase.from("client_reviews").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
+      if (data && data.length > 0) {
+        setReviews(data as unknown as ClientReview[]);
+      }
+    } catch {}
   }
 
   async function loadMessages() {
-    const { data, error } = await supabase
-      .from("contact_messages")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) return;
-    setMessages((data ?? []) as unknown as Message[]);
+    const { data } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false });
+    if (data) setMessages(data as unknown as Message[]);
   }
-
-  useEffect(() => {
-    load();
-    loadMessages();
-    loadReviews();
-  }, []);
-
-  async function markRead(m: Message) {
-    const { error } = await supabase
-      .from("contact_messages")
-      .update({ is_read: !m.is_read })
-      .eq("id", m.id);
-    if (error) return toast.error(error.message);
-    loadMessages();
-  }
-
-  async function deleteMessage(id: string) {
-    if (!confirm("Delete this message?")) return;
-    const { error } = await supabase.from("contact_messages").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Deleted");
-    loadMessages();
-  }
-
-  const unreadCount = messages.filter((m) => !m.is_read).length;
 
   function handleSignOut() {
     localStorage.removeItem("baycon_admin");
     navigate({ to: "/auth" });
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this work permanently?")) return;
-    deleteLocalWork(id);
-    setWorks((prev) => prev.filter((w) => w.id !== id));
-    toast.success("Deleted permanently");
-  }
-
-  async function handleToggleStatus(w: Work) {
-    const nextStatus = toggleLocalWorkStatus(w.id);
-    setWorks((prev) =>
-      prev.map((item) => (item.id === w.id ? { ...item, status: nextStatus } : item))
-    );
-    toast.success(
-      nextStatus === "published"
-        ? "Video published! Now visible on site."
-        : "Video unpublished! Moved to draft."
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-40">
-        <div className="mx-auto max-w-7xl flex items-center justify-between px-6 py-4">
-          <Link to="/" className="font-display text-xl font-black tracking-widest neon-text">
-            BAYCON <span className="text-muted-foreground text-xs ml-2 tracking-normal font-normal">/ admin</span>
-          </Link>
-          <div className="flex items-center gap-3">
-
-            <Link to="/" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-              View Site <ExternalLink className="h-3 w-3" />
-            </Link>
-            <button onClick={handleSignOut} className="rounded-md neon-border px-4 py-2 text-xs uppercase tracking-widest hover:bg-primary/10 inline-flex items-center gap-2">
-              <LogOut className="h-3 w-3" /> Sign out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-6 py-10">
-        <div className="mb-8 flex items-center gap-2 border-b border-border">
-          <button
-            onClick={() => setTab("works")}
-            className={`px-4 py-3 text-xs uppercase tracking-widest border-b-2 transition ${tab === "works" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-          >
-            Works
-          </button>
-          <button
-            onClick={() => setTab("reviews")}
-            className={`px-4 py-3 text-xs uppercase tracking-widest border-b-2 transition ${tab === "reviews" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-          >
-            Client Reviews
-          </button>
-          <button
-            onClick={() => setTab("messages")}
-            className={`px-4 py-3 text-xs uppercase tracking-widest border-b-2 transition inline-flex items-center gap-2 ${tab === "messages" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-          >
-            Messages
-            {unreadCount > 0 && (
-              <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5">{unreadCount}</span>
-            )}
-          </button>
-        </div>
-
-        {tab === "messages" ? (
-          <MessagesPanel messages={messages} onToggleRead={markRead} onDelete={deleteMessage} />
-        ) : tab === "reviews" ? (
-          <ReviewsPanel
-            reviews={reviews}
-            onNew={() => { setEditingReview(null); setShowReviewForm(true); }}
-            onEdit={(r) => { setEditingReview(r); setShowReviewForm(true); }}
-            onDelete={deleteReview}
-            onToggleStatus={toggleReviewStatus}
-          />
-        ) : (
-        <>
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="font-display text-3xl md:text-4xl font-black neon-text">Your Works</h1>
-            <p className="text-sm text-muted-foreground mt-1">Upload videos, paste embed links, manage what's live on your site.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {works.length > 0 && (
-              <button
-                onClick={handleClearAllWorks}
-                className="rounded-md border border-red-500/50 bg-red-950/30 px-4 py-3 text-xs font-bold uppercase tracking-wider text-red-400 hover:bg-red-900/50 hover:border-red-400 transition"
-              >
-                Clear All Videos
-              </button>
-            )}
-            <button
-              onClick={() => { setEditing(null); setShowForm(true); }}
-              className="rounded-md bg-primary px-5 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 inline-flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" /> New Work
-            </button>
-          </div>
-        </div>
-
-        {loading ? (
-          <p className="text-muted-foreground">Loading…</p>
-        ) : works.length === 0 ? (
-          <div className="rounded-2xl neon-border bg-card/30 p-12 text-center">
-            <p className="text-muted-foreground">No works yet. Click <strong>New Work</strong> to upload your first piece.</p>
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {works.map((w) => (
-              <div key={w.id} className="glass rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4">
-                <div className="w-full md:w-32 aspect-video rounded-md neon-border bg-black overflow-hidden flex items-center justify-center">
-                  {w.thumbnail_url ? (
-                    <img src={w.thumbnail_url} alt={w.title} className="w-full h-full object-cover" />
-                  ) : w.video_url ? (
-                    <video src={w.video_url} className="w-full h-full object-cover" muted preload="metadata" />
-                  ) : (
-                    <span className="text-2xl">▶</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-lg font-bold truncate">{w.title}</h3>
-                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${w.status === "published" ? "bg-primary text-primary-foreground" : "neon-border text-muted-foreground"}`}>
-                      {w.status}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{w.category}</span>
-                  </div>
-                  {w.description && <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{w.description}</p>}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => handleToggleStatus(w)} className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-md neon-border hover:bg-primary/10">
-                    {w.status === "published" ? "Unpublish" : "Publish"}
-                  </button>
-                  <button onClick={() => { setEditing(w); setShowForm(true); }} className="p-2 rounded-md neon-border hover:bg-primary/10" aria-label="Edit">
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => handleDelete(w.id)} className="p-2 rounded-md neon-border hover:bg-primary/10 text-primary" aria-label="Delete">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        </>
-        )}
-      </main>
-
-      {showForm && (
-        <WorkForm
-          work={editing}
-          onClose={() => setShowForm(false)}
-          onSaved={() => { setShowForm(false); load(); }}
-        />
-      )}
-
-      {showReviewForm && (
-        <ReviewForm
-          review={editingReview}
-          onClose={() => setShowReviewForm(false)}
-          onSaved={() => { setShowReviewForm(false); loadReviews(); }}
-        />
-      )}
-    </div>
-  );
-}
-
-function MessagesPanel({
-  messages,
-  onToggleRead,
-  onDelete,
-}: {
-  messages: Message[];
-  onToggleRead: (m: Message) => void;
-  onDelete: (id: string) => void;
-}) {
-  if (messages.length === 0) {
-    return (
-      <div className="rounded-2xl neon-border bg-card/30 p-12 text-center">
-        <p className="text-muted-foreground">No messages yet. When someone submits the contact form, it will appear here.</p>
-      </div>
-    );
-  }
-  return (
-    <div>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl md:text-4xl font-black neon-text">Inbox</h1>
-        <p className="text-sm text-muted-foreground mt-1">Messages sent from your contact form.</p>
-      </div>
-      <div className="grid gap-4">
-        {messages.map((m) => (
-          <div key={m.id} className={`glass rounded-xl p-5 ${!m.is_read ? "neon-border" : ""}`}>
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-bold text-foreground">{m.name}</h3>
-                  {!m.is_read && (
-                    <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary text-primary-foreground">New</span>
-                  )}
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{m.project_type}</span>
-                </div>
-                <a href={`mailto:${m.email}`} className="text-xs text-primary hover:underline">{m.email}</a>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(m.created_at).toLocaleString()}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button onClick={() => onToggleRead(m)} className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-md neon-border hover:bg-primary/10">
-                  {m.is_read ? "Mark unread" : "Mark read"}
-                </button>
-                <a href={`mailto:${m.email}?subject=Re: Your Baycon inquiry`} className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-md neon-border hover:bg-primary/10">Reply</a>
-                <button onClick={() => onDelete(m.id)} className="p-2 rounded-md neon-border hover:bg-primary/10 text-primary" aria-label="Delete">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground whitespace-pre-wrap">{m.message}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function WorkForm({ work, onClose, onSaved }: { work: Work | null; onClose: () => void; onSaved: () => void }) {
-  const [saving, setSaving] = useState(false);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [thumbFile, setThumbFile] = useState<File | null>(null);
-  const [progress, setProgress] = useState<string>("");
-
-  async function uploadFile(bucket: string, file: File): Promise<string> {
-    const ext = file.name.split(".").pop() ?? "bin";
-    const randomStr = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
-    const path = `${randomStr}.${ext}`;
-    const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, {
-      cacheControl: "31536000",
-      upsert: false,
-      contentType: file.type || undefined,
-    });
-    if (upErr) throw upErr;
-    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, LONG_EXPIRY);
-    if (error || !data) throw error ?? new Error("Failed to create signed URL");
-    return data.signedUrl;
-  }
-
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleAddYouTube(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const parsed = workSchema.safeParse({
-      title: form.get("title"),
-      category: form.get("category"),
-      description: form.get("description") ?? "",
-      status: form.get("status"),
-      embed_url: form.get("embed_url") ?? "",
-    });
-    if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
-      return;
-    }
+    const link = form.get("youtube_link") as string;
+    const title = form.get("title") as string;
+    const category = form.get("category") as any;
 
-    setSaving(true);
+    if (!link || !title) return toast.error("Link and title are required");
+
+    setIsSaving(true);
     try {
-      let video_url = work?.video_url ?? null;
-      let thumbnail_url = work?.thumbnail_url ?? null;
-
-      if (videoFile) {
-        if (videoFile.size > 200 * 1024 * 1024) throw new Error("Video must be under 200 MB");
-        setProgress("Uploading video…");
-        try {
-          video_url = await uploadMediaFile("works-videos", videoFile);
-        } catch {
-          // If Supabase storage fails, fallback to object URL
-          video_url = URL.createObjectURL(videoFile);
-        }
-      }
-      if (thumbFile) {
-        if (thumbFile.size > 10 * 1024 * 1024) throw new Error("Thumbnail must be under 10 MB");
-        setProgress("Uploading thumbnail…");
-        try {
-          thumbnail_url = await uploadMediaFile("works-thumbnails", thumbFile);
-        } catch {
-          thumbnail_url = await fileToDataUrl(thumbFile);
-        }
-      }
-
-      setProgress("Saving…");
-
-      let embed_url = parsed.data.embed_url || null;
-      if (embed_url) {
-        const parsedYt = parseYouTubeUrl(embed_url);
-        if (parsedYt.embedUrl) {
-          embed_url = parsedYt.embedUrl;
-        }
-        if (!thumbnail_url && parsedYt.thumbnailUrl) {
-          thumbnail_url = parsedYt.thumbnailUrl;
-        }
-      }
+      const parsedYt = parseYouTubeUrl(link);
+      const embed_url = parsedYt.embedUrl || link;
+      const thumbnail_url = parsedYt.thumbnailUrl || null;
 
       saveLocalWork({
-        id: work?.id,
-        title: parsed.data.title,
-        category: parsed.data.category,
-        description: parsed.data.description || null,
-        status: parsed.data.status,
+        title,
+        category,
+        description: null,
+        status: "published", // Instantly publish YouTube links
         embed_url,
-        video_url,
+        video_url: null,
         thumbnail_url,
       });
 
-      toast.success(work ? "Updated successfully!" : "Work created successfully!");
-      onSaved();
+      toast.success("YouTube Video Added & Published!");
+      (e.target as HTMLFormElement).reset();
+      loadWorks();
+      setTab("works");
     } catch (err: any) {
-      console.error("Work save error:", err);
-      toast.error(err?.message || "Save failed");
+      toast.error(err.message || "Failed to add video");
     } finally {
-      setSaving(false);
-      setProgress("");
+      setIsSaving(false);
     }
   }
 
+  const unreadCount = messages.filter((m) => !m.is_read).length;
+
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-start md:items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl glass neon-border rounded-2xl p-6 md:p-8 my-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-display text-2xl font-black neon-text">{work ? "Edit Work" : "New Work"}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-2xl leading-none">×</button>
+    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+      {/* SIDEBAR NAVIGATION */}
+      <aside className="w-64 border-r border-border bg-card/30 backdrop-blur-xl flex flex-col h-full shrink-0">
+        <div className="p-6 border-b border-border">
+          <Link to="/" className="font-display text-2xl font-black neon-text">BAYCON</Link>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 font-mono">Workspace Admin</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="Title">
-            <input name="title" required defaultValue={work?.title ?? ""} maxLength={120} className={inputCls} />
-          </Field>
+        <nav className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto">
+          <SidebarButton active={tab === "add_youtube"} onClick={() => setTab("add_youtube")} icon={<Youtube className="h-4 w-4" />} label="Add YouTube Video" />
+          <SidebarButton active={tab === "works"} onClick={() => setTab("works")} icon={<Film className="h-4 w-4" />} label="Manage Portfolio" count={works.length} />
+          <SidebarButton active={tab === "reviews"} onClick={() => setTab("reviews")} icon={<Star className="h-4 w-4" />} label="Client Reviews" count={reviews.length} />
+          <SidebarButton active={tab === "messages"} onClick={() => setTab("messages")} icon={<MessageSquare className="h-4 w-4" />} label="Inbox" count={unreadCount || undefined} alert={unreadCount > 0} />
+        </nav>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Category">
-              <select name="category" required defaultValue={work?.category === "General Editing" ? "Random Edit" : work?.category ?? "Random Edit"} className={inputCls}>
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </Field>
-            <Field label="Status">
-              <select name="status" required defaultValue={work?.status ?? "draft"} className={inputCls}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-              </select>
-            </Field>
-          </div>
-
-          <Field label="Description (optional)">
-            <textarea name="description" rows={3} maxLength={1000} defaultValue={work?.description ?? ""} className={inputCls + " resize-none"} />
-          </Field>
-
-          <Field label="Video Link (YouTube, TikTok, Vimeo, etc.) (optional)">
-            <input
-              name="embed_url"
-              type="text"
-              defaultValue={work?.embed_url ?? ""}
-              placeholder="e.g. https://www.youtube.com/watch?v=..."
-              className={inputCls}
-            />
-            <p className="mt-1 text-[10px] text-muted-foreground">Just paste the regular video link (YouTube, TikTok, etc.). We'll handle the rest.</p>
-          </Field>
-
-          <Field label={`Video file (optional${work?.video_url ? ", current file kept if blank" : ""})`}>
-            <label className="flex items-center justify-center gap-2 rounded-md neon-border bg-background/40 px-4 py-3 text-xs uppercase tracking-widest cursor-pointer hover:bg-primary/10">
-              <Upload className="h-4 w-4" />
-              {videoFile ? videoFile.name : "Choose video (.mp4, ≤200 MB)"}
-              <input type="file" accept="video/*" className="hidden" onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)} />
-            </label>
-          </Field>
-
-          <Field label={`Video thumbnail (optional${work?.thumbnail_url ? ", current image kept if blank" : ""})`}>
-            <label className="flex items-center justify-center gap-2 rounded-md neon-border bg-background/40 px-4 py-3 text-xs uppercase tracking-widest cursor-pointer hover:bg-primary/10">
-              <Upload className="h-4 w-4" />
-              {thumbFile ? thumbFile.name : "Choose thumbnail image (≤10 MB)"}
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => setThumbFile(e.target.files?.[0] ?? null)} />
-            </label>
-            <p className="mt-1 text-[10px] text-muted-foreground">Shown as the cover for a YouTube or TikTok link until a visitor presses play.</p>
-          </Field>
-
-          {progress && <p className="text-xs text-muted-foreground">{progress}</p>}
-
-          <div className="flex items-center gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 rounded-md neon-border px-5 py-3 text-xs uppercase tracking-widest hover:bg-primary/10">
-              Cancel
-            </button>
-            <button type="submit" disabled={saving} className="flex-1 rounded-md bg-primary px-5 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 disabled:opacity-60">
-              {saving ? "Saving…" : work ? "Save Changes" : "Create Work"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-const inputCls =
-  "w-full rounded-md bg-input border border-border px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/40";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">{label}</label>
-      {children}
-    </div>
-  );
-}
-async function uploadMediaFile(bucket: string, file: File): Promise<string> {
-  const ext = file.name.split(".").pop() ?? "bin";
-  const randomStr = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
-  const path = `${randomStr}.${ext}`;
-
-  const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, {
-    cacheControl: "31536000",
-    upsert: true,
-    contentType: file.type || undefined,
-  });
-
-  if (upErr) {
-    console.error(`[Storage Upload Error] Bucket: ${bucket}`, upErr);
-    if (upErr.message?.includes("row-level security") || upErr.message?.includes("RLS")) {
-      throw new Error(`Upload failed due to Supabase Storage RLS permissions. Please run the SQL migration in your Supabase SQL Editor.`);
-    }
-    if (upErr.message?.includes("Bucket not found") || (upErr as any).statusCode === "404") {
-      throw new Error(`Storage bucket "${bucket}" not found. Please run the SQL migration to create it in your Supabase project.`);
-    }
-    throw new Error(upErr.message || "Failed to upload file to storage.");
-  }
-
-  const { data: pubData } = supabase.storage.from(bucket).getPublicUrl(path);
-  if (pubData?.publicUrl) {
-    return pubData.publicUrl;
-  }
-
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, LONG_EXPIRY);
-  if (error || !data?.signedUrl) {
-    throw error ?? new Error("Failed to create file URL");
-  }
-  return data.signedUrl;
-}
-
-function ReviewsPanel({
-  reviews,
-  onNew,
-  onEdit,
-  onDelete,
-  onToggleStatus,
-}: {
-  reviews: ClientReview[];
-  onNew: () => void;
-  onEdit: (r: ClientReview) => void;
-  onDelete: (id: string) => void;
-  onToggleStatus: (r: ClientReview) => void;
-}) {
-  return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="font-display text-3xl md:text-4xl font-black neon-text">Client Work & Reviews</h1>
-          <p className="text-sm text-muted-foreground mt-1">Add a client's video plus what they said about it.</p>
+        <div className="p-4 border-t border-border flex flex-col gap-2">
+          <Link to="/" className="flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-widest text-muted-foreground hover:bg-white/5 transition-colors">
+            <ExternalLink className="h-4 w-4" /> Live Site
+          </Link>
+          <button onClick={handleSignOut} className="flex items-center gap-3 px-4 py-3 rounded-lg text-xs uppercase tracking-widest text-red-400 hover:bg-red-950/30 transition-colors w-full text-left">
+            <LogOut className="h-4 w-4" /> Sign Out
+          </button>
         </div>
-        <button
-          onClick={onNew}
-          className="rounded-md bg-primary px-5 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 inline-flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" /> New Review
-        </button>
-      </div>
+      </aside>
 
-      {reviews.length === 0 ? (
-        <div className="rounded-2xl neon-border bg-card/30 p-12 text-center">
-          <p className="text-muted-foreground">No client reviews yet. Click <strong>New Review</strong> to add one.</p>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {reviews.map((r) => (
-            <div key={r.id} className="glass rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4">
-              <div className="w-full md:w-32 aspect-video rounded-md neon-border bg-black overflow-hidden flex items-center justify-center">
-                {r.thumbnail_url ? (
-                  <img src={r.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                ) : r.video_url ? (
-                  <video src={r.video_url} className="w-full h-full object-cover" muted preload="metadata" />
-                ) : (
-                  <span className="text-2xl">▶</span>
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 overflow-y-auto relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background">
+        <div className="p-8 md:p-12 max-w-5xl mx-auto min-h-full">
+          
+          {tab === "add_youtube" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-10">
+                <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 mb-6">
+                  <Youtube className="h-8 w-8" />
+                </div>
+                <h1 className="font-impact text-4xl sm:text-5xl uppercase tracking-tight mb-3">Add YouTube Video</h1>
+                <p className="text-muted-foreground font-mono text-sm max-w-xl">
+                  Quickly drop a YouTube link, give it a title, and pick a category. It will instantly go live on your portfolio without any complex uploads.
+                </p>
+              </div>
+
+              <form onSubmit={handleAddYouTube} className="space-y-6 max-w-2xl bg-card/40 border border-border/50 p-8 rounded-3xl backdrop-blur-md shadow-2xl">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">YouTube Link</label>
+                  <input
+                    name="youtube_link"
+                    type="url"
+                    required
+                    placeholder="e.g. https://youtube.com/watch?v=..."
+                    className="w-full bg-background border border-border rounded-xl px-5 py-4 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono text-sm"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Project Title</label>
+                    <input
+                      name="title"
+                      type="text"
+                      required
+                      placeholder="e.g. MrBeast Style Edit"
+                      className="w-full bg-background border border-border rounded-xl px-5 py-4 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-sans"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Category</label>
+                    <select
+                      name="category"
+                      required
+                      className="w-full bg-background border border-border rounded-xl px-5 py-4 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-sans appearance-none"
+                    >
+                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="w-full rounded-xl bg-primary px-8 py-5 font-display text-sm font-bold tracking-widest text-black shadow-[0_0_30px_rgba(255,26,26,0.3)] hover:shadow-[0_0_50px_rgba(255,26,26,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                  >
+                    {isSaving ? "ADDING VIDEO..." : "ADD TO PORTFOLIO"}
+                    {!isSaving && <CheckCircle2 className="h-5 w-5" />}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {tab === "works" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
+                <div>
+                  <h1 className="font-impact text-4xl sm:text-5xl uppercase tracking-tight mb-2">Manage Portfolio</h1>
+                  <p className="text-muted-foreground font-mono text-sm">Organize and toggle visibility of your videos.</p>
+                </div>
+                {works.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm("Clear ALL portfolio videos?")) {
+                        clearAllWorks();
+                        setWorks([]);
+                        toast.success("Portfolio cleared");
+                      }
+                    }}
+                    className="px-4 py-2 rounded-lg border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors"
+                  >
+                    Clear All Videos
+                  </button>
                 )}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-lg font-bold truncate">{r.client_name}</h3>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${r.status === "published" ? "bg-primary text-primary-foreground" : "neon-border text-muted-foreground"}`}>
-                    {r.status}
-                  </span>
-                  <span className="text-[10px] text-primary tracking-widest">{"★".repeat(r.rating)}</span>
+
+              {works.length === 0 ? (
+                <div className="border border-dashed border-border/60 rounded-3xl p-16 text-center bg-card/20 flex flex-col items-center">
+                  <Film className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                  <p className="text-muted-foreground font-mono">No videos added yet.</p>
+                  <button onClick={() => setTab("add_youtube")} className="mt-4 text-primary text-sm hover:underline font-bold">Add your first video →</button>
                 </div>
-                {r.project_title && <p className="text-xs text-muted-foreground mt-0.5">{r.project_title}</p>}
-                <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{r.quote}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button onClick={() => onToggleStatus(r)} className="text-[10px] uppercase tracking-widest px-3 py-2 rounded-md neon-border hover:bg-primary/10">
-                  {r.status === "published" ? "Unpublish" : "Publish"}
-                </button>
-                <button onClick={() => onEdit(r)} className="p-2 rounded-md neon-border hover:bg-primary/10" aria-label="Edit">
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button onClick={() => onDelete(r.id)} className="p-2 rounded-md neon-border hover:bg-primary/10 text-primary" aria-label="Delete">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {works.map(w => (
+                    <div key={w.id} className="group border border-border bg-card/40 rounded-2xl overflow-hidden hover:border-primary/50 transition-colors">
+                      <div className="aspect-video bg-black relative">
+                        {w.thumbnail_url ? (
+                          <img src={w.thumbnail_url} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-zinc-900"><Youtube className="h-8 w-8 text-white/20" /></div>
+                        )}
+                        <div className="absolute top-3 left-3">
+                          <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-md backdrop-blur-md ${w.status === 'published' ? 'bg-primary text-black' : 'bg-black/80 text-white border border-white/20'}`}>
+                            {w.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-5">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{w.category}</div>
+                        <h3 className="font-bold text-foreground truncate mb-4">{w.title}</h3>
+                        
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              const newStatus = toggleLocalWorkStatus(w.id);
+                              setWorks(prev => prev.map(item => item.id === w.id ? { ...item, status: newStatus } : item));
+                              toast.success(newStatus === 'published' ? 'Video Published' : 'Video Hidden');
+                            }}
+                            className="flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-border hover:bg-white/5 transition-colors"
+                          >
+                            {w.status === 'published' ? 'Hide' : 'Publish'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm("Delete this video?")) {
+                                deleteLocalWork(w.id);
+                                setWorks(prev => prev.filter(item => item.id !== w.id));
+                                toast.success("Video deleted");
+                              }
+                            }}
+                            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-red-400 hover:border-red-400/50 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
+          )}
+
+          {tab === "reviews" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-20 bg-card/20 border border-border rounded-3xl mt-10">
+              <Star className="h-16 w-16 text-muted-foreground/30 mx-auto mb-6" />
+              <h2 className="font-impact text-3xl text-foreground uppercase">Client Reviews</h2>
+              <p className="text-muted-foreground font-mono mt-2 max-w-sm mx-auto">To keep things ultra-simple, the focus right now is just on adding your YouTube videos!</p>
+            </div>
+          )}
+
+          {tab === "messages" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-20 bg-card/20 border border-border rounded-3xl mt-10">
+              <MessageSquare className="h-16 w-16 text-muted-foreground/30 mx-auto mb-6" />
+              <h2 className="font-impact text-3xl text-foreground uppercase">Inbox</h2>
+              <p className="text-muted-foreground font-mono mt-2">When clients fill your contact form, they will appear here.</p>
+            </div>
+          )}
+
         </div>
-      )}
+      </main>
     </div>
   );
 }
 
-function ReviewForm({ review, onClose, onSaved }: { review: ClientReview | null; onClose: () => void; onSaved: () => void }) {
-  const [saving, setSaving] = useState(false);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [thumbFile, setThumbFile] = useState<File | null>(null);
-  const [progress, setProgress] = useState("");
-
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const parsed = reviewSchema.safeParse({
-      client_name: form.get("client_name"),
-      client_role: form.get("client_role") ?? "",
-      project_title: form.get("project_title") ?? "",
-      quote: form.get("quote"),
-      rating: form.get("rating"),
-      status: form.get("status"),
-      embed_url: form.get("embed_url") ?? "",
-    });
-    if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
-      return;
-    }
-
-    setSaving(true);
-    try {
-      let video_url = review?.video_url ?? null;
-      let thumbnail_url = review?.thumbnail_url ?? null;
-
-      if (videoFile) {
-        if (videoFile.size > 200 * 1024 * 1024) throw new Error("Video must be under 200 MB");
-        setProgress("Uploading video…");
-        try {
-          video_url = await uploadMediaFile("works-videos", videoFile);
-        } catch {
-          video_url = URL.createObjectURL(videoFile);
-        }
-      }
-      if (thumbFile) {
-        if (thumbFile.size > 10 * 1024 * 1024) throw new Error("Thumbnail must be under 10 MB");
-        setProgress("Uploading thumbnail…");
-        try {
-          thumbnail_url = await uploadMediaFile("works-thumbnails", thumbFile);
-        } catch {
-          thumbnail_url = await fileToDataUrl(thumbFile);
-        }
-      }
-
-      setProgress("Saving…");
-
-      let embed_url = parsed.data.embed_url || null;
-      if (embed_url) {
-        const parsedYt = parseYouTubeUrl(embed_url);
-        if (parsedYt.embedUrl) {
-          embed_url = parsedYt.embedUrl;
-        }
-        if (!thumbnail_url && parsedYt.thumbnailUrl) {
-          thumbnail_url = parsedYt.thumbnailUrl;
-        }
-      }
-
-      saveLocalReview({
-        id: review?.id,
-        client_name: parsed.data.client_name,
-        client_role: parsed.data.client_role || null,
-        project_title: parsed.data.project_title || null,
-        quote: parsed.data.quote,
-        rating: parsed.data.rating,
-        status: parsed.data.status,
-        embed_url,
-        video_url,
-        thumbnail_url,
-      });
-
-      toast.success(review ? "Updated successfully!" : "Review created successfully!");
-      onSaved();
-    } catch (err: any) {
-      console.error("Review save error:", err);
-      toast.error(err?.message || "Save failed");
-    } finally {
-      setSaving(false);
-      setProgress("");
-    }
-  }
-
+function SidebarButton({ active, onClick, icon, label, count, alert }: any) {
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-start md:items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl glass neon-border rounded-2xl p-6 md:p-8 my-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-display text-2xl font-black neon-text">{review ? "Edit Review" : "New Client Review"}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-2xl leading-none">×</button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Client name">
-              <input name="client_name" required defaultValue={review?.client_name ?? ""} maxLength={120} className={inputCls} />
-            </Field>
-            <Field label="Client role / company (optional)">
-              <input name="client_role" defaultValue={review?.client_role ?? ""} maxLength={160} className={inputCls} />
-            </Field>
-          </div>
-
-          <Field label="Project title (optional)">
-            <input name="project_title" defaultValue={review?.project_title ?? ""} maxLength={160} className={inputCls} />
-          </Field>
-
-          <Field label="Review">
-            <textarea name="quote" required rows={4} maxLength={1000} defaultValue={review?.quote ?? ""} className={inputCls + " resize-none"} />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Rating">
-              <select name="rating" required defaultValue={String(review?.rating ?? 5)} className={inputCls}>
-                {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
-              </select>
-            </Field>
-            <Field label="Status">
-              <select name="status" required defaultValue={review?.status ?? "draft"} className={inputCls}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-              </select>
-            </Field>
-          </div>
-
-          <Field label="Video Link (YouTube, TikTok, Vimeo, etc.) (optional)">
-            <input name="embed_url" type="text" defaultValue={review?.embed_url ?? ""} placeholder="e.g. https://www.youtube.com/watch?v=..." className={inputCls} />
-          </Field>
-
-          <Field label={`Video file (optional${review?.video_url ? ", current file kept if blank" : ""})`}>
-            <label className="flex items-center justify-center gap-2 rounded-md neon-border bg-background/40 px-4 py-3 text-xs uppercase tracking-widest cursor-pointer hover:bg-primary/10">
-              <Upload className="h-4 w-4" />
-              {videoFile ? videoFile.name : "Choose video (.mp4, ≤200 MB)"}
-              <input type="file" accept="video/*" className="hidden" onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)} />
-            </label>
-          </Field>
-
-          <Field label={`Thumbnail image (optional${review?.thumbnail_url ? ", current image kept if blank" : ""})`}>
-            <label className="flex items-center justify-center gap-2 rounded-md neon-border bg-background/40 px-4 py-3 text-xs uppercase tracking-widest cursor-pointer hover:bg-primary/10">
-              <Upload className="h-4 w-4" />
-              {thumbFile ? thumbFile.name : "Choose thumbnail image (≤10 MB)"}
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => setThumbFile(e.target.files?.[0] ?? null)} />
-            </label>
-          </Field>
-
-          {progress && <p className="text-xs text-muted-foreground">{progress}</p>}
-
-          <div className="flex items-center gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 rounded-md neon-border px-5 py-3 text-xs uppercase tracking-widest hover:bg-primary/10">Cancel</button>
-            <button type="submit" disabled={saving} className="flex-1 rounded-md bg-primary px-5 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground neon-glow hover:brightness-110 disabled:opacity-60">
-              {saving ? "Saving…" : review ? "Save Changes" : "Create Review"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 w-full px-4 py-3.5 rounded-xl transition-all ${
+        active 
+          ? "bg-primary text-black shadow-[0_0_20px_rgba(255,26,26,0.2)]" 
+          : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+      }`}
+    >
+      <div className={`${active ? "text-black" : "text-muted-foreground"}`}>{icon}</div>
+      <span className="font-display text-xs font-bold uppercase tracking-widest text-left flex-1">{label}</span>
+      {count !== undefined && (
+        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${active ? "bg-black/20 text-black" : alert ? "bg-primary text-primary-foreground" : "bg-white/10 text-muted-foreground"}`}>
+          {count}
+        </span>
+      )}
+    </button>
   );
 }
