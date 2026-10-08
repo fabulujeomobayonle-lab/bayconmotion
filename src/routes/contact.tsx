@@ -7,6 +7,8 @@ import { PageTransitionTrigger } from "@/components/PageTransition";
 import { sound } from "@/components/SoundSystem";
 import { useState } from "react";
 import { Mail, Send, CheckCircle2, Sparkles, Upload, Calendar, ShieldCheck, Clock, MessageSquare } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -20,6 +22,7 @@ export const Route = createFileRoute("/contact")({
 
 function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -29,10 +32,28 @@ function ContactPage() {
     notes: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    sound.playSuccess();
-    setSubmitted(true);
+    setIsSubmitting(true);
+    
+    try {
+      const { error } = await supabase.from("contact_messages").insert({
+        name: formData.name,
+        email: formData.email,
+        project_type: formData.videoType,
+        message: `Volume: ${formData.volume}\nLink: ${formData.driveLink}\nNotes: ${formData.notes}`,
+      });
+
+      if (error) throw error;
+
+      sound.playSuccess();
+      setSubmitted(true);
+    } catch (error: any) {
+      console.error("Error submitting form:", error);
+      toast.error(error.message || "Failed to send message. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -191,11 +212,12 @@ function ContactPage() {
                 {/* Submit Button */}
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   onMouseEnter={() => sound.playGlitch()}
-                  className="w-full rounded-xl bg-primary py-4 font-display text-sm font-bold tracking-widest text-black shadow-[0_0_30px_rgba(255,26,26,0.8)] hover:bg-primary/90 transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
+                  className="w-full rounded-xl bg-primary py-4 font-display text-sm font-bold tracking-widest text-black shadow-[0_0_30px_rgba(255,26,26,0.8)] hover:bg-primary/90 transition-all hover:scale-[1.01] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="h-4 w-4" />
-                  <span>TRANSMIT BRIEF & REQUEST PROPOSAL</span>
+                  <span>{isSubmitting ? "TRANSMITTING..." : "TRANSMIT BRIEF & REQUEST PROPOSAL"}</span>
                 </button>
               </form>
             )}
