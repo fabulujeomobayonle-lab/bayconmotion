@@ -310,10 +310,71 @@ function AdminPage() {
           )}
 
           {tab === "messages" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-20 bg-card/20 border border-border rounded-3xl mt-10">
-              <MessageSquare className="h-16 w-16 text-muted-foreground/30 mx-auto mb-6" />
-              <h2 className="font-impact text-3xl text-foreground uppercase">Inbox</h2>
-              <p className="text-muted-foreground font-mono mt-2">When clients fill your contact form, they will appear here.</p>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-10">
+                <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 border border-primary/20 text-primary mb-6">
+                  <MessageSquare className="h-8 w-8" />
+                </div>
+                <h1 className="font-impact text-4xl sm:text-5xl uppercase tracking-tight mb-3">Client Inbox</h1>
+                <p className="text-muted-foreground font-mono text-sm max-w-xl">
+                  Review and manage your incoming project briefs and contact requests.
+                </p>
+              </div>
+
+              {messages.length === 0 ? (
+                <div className="border border-dashed border-border/60 rounded-3xl p-16 text-center bg-card/20 flex flex-col items-center">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                  <p className="text-muted-foreground font-mono">No messages yet.</p>
+                  <p className="text-muted-foreground/70 font-mono text-xs mt-2">When clients fill your contact form, they will appear here.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {messages.map((m) => (
+                    <div key={m.id} className="p-6 rounded-2xl bg-card/40 border border-border hover:border-primary/50 transition-all flex flex-col gap-4 relative overflow-hidden group">
+                      {!m.is_read && (
+                        <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                      )}
+                      
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                        <div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="font-bold text-foreground text-lg">{m.name}</h3>
+                            {!m.is_read && <span className="bg-primary/20 text-primary text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-sm">New</span>}
+                          </div>
+                          <a href={`mailto:${m.email}`} className="text-sm font-mono text-cyan-400 hover:underline">{m.email}</a>
+                        </div>
+                        <div className="text-right">
+                          <span className="inline-block bg-white/10 text-muted-foreground text-xs font-mono px-3 py-1 rounded-full mb-1">
+                            {m.project_type}
+                          </span>
+                          <div className="text-[10px] text-muted-foreground uppercase font-mono tracking-widest mt-1">
+                            {new Date(m.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-black/50 p-4 rounded-xl border border-white/5">
+                        <p className="text-sm text-foreground/90 whitespace-pre-wrap font-sans leading-relaxed">{m.message}</p>
+                      </div>
+                      
+                      <div className="flex justify-end pt-2">
+                        <button
+                          onClick={async () => {
+                            const newStatus = !m.is_read;
+                            const { error } = await supabase.from("contact_messages").update({ is_read: newStatus }).eq("id", m.id);
+                            if (!error) {
+                              setMessages(prev => prev.map(msg => msg.id === m.id ? { ...msg, is_read: newStatus } : msg));
+                            }
+                          }}
+                          className="text-xs font-bold font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase"
+                        >
+                          {m.is_read ? "Mark as Unread" : "Mark as Read"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
