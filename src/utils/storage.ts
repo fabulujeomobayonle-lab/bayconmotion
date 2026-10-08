@@ -39,6 +39,16 @@ export type ClientReview = {
   created_at: string;
 };
 
+export type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  project_type: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+};
+
 const INITIAL_WORKS: Work[] = [];
 
 export const BANNED_WORK_IDS = new Set([
@@ -49,6 +59,7 @@ export const BANNED_WORK_IDS = new Set([
 const STORAGE_KEY_WORKS = "baycon_works_v2";
 const STORAGE_KEY_REVIEWS = "baycon_reviews_v2";
 const STORAGE_KEY_DELETED = "baycon_deleted_works_v2";
+const STORAGE_KEY_MESSAGES = "baycon_messages_v1";
 
 export function getDeletedWorkIds(): Set<string> {
   try {
@@ -330,6 +341,70 @@ export function deleteLocalReview(id: string): void {
       await supabase.from("client_reviews").delete().eq("id", id);
     } catch {}
   })();
+}
+
+export function getLocalMessages(): ContactMessage[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_MESSAGES);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalMessage(msg: Omit<ContactMessage, "id" | "created_at" | "is_read">): ContactMessage {
+  const current = getLocalMessages();
+  const newMessage: ContactMessage = {
+    ...msg,
+    id: generateId(),
+    is_read: false,
+    created_at: new Date().toISOString(),
+  };
+
+  const next = [newMessage, ...current];
+  localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(next));
+
+  (async () => {
+    try {
+      await supabase.from("contact_messages").insert({
+        id: newMessage.id,
+        name: newMessage.name,
+        email: newMessage.email,
+        project_type: newMessage.project_type,
+        message: newMessage.message,
+        is_read: newMessage.is_read,
+        created_at: newMessage.created_at,
+      });
+    } catch (err) {
+      console.warn("Supabase contact_messages insert sync warning:", err);
+    }
+  })();
+
+  return newMessage;
+}
+
+export function toggleLocalMessageRead(id: string): boolean {
+  const current = getLocalMessages();
+  let newStatus = false;
+  const next = current.map((m) => {
+    if (m.id === id) {
+      newStatus = !m.is_read;
+      return { ...m, is_read: newStatus };
+    }
+    return m;
+  });
+  localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(next));
+
+  (async () => {
+    try {
+      await supabase.from("contact_messages").update({ is_read: newStatus }).eq("id", id);
+    } catch (err) {
+      console.warn("Supabase contact_messages update sync warning:", err);
+    }
+  })();
+
+  return newStatus;
 }
 
 export function fileToDataUrl(file: File): Promise<string> {

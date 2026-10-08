@@ -7,7 +7,7 @@ import { PageTransitionTrigger } from "@/components/PageTransition";
 import { sound } from "@/components/SoundSystem";
 import { useState } from "react";
 import { Mail, Send, CheckCircle2, Sparkles, Upload, Calendar, ShieldCheck, Clock, MessageSquare } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { saveLocalMessage } from "@/utils/storage";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/contact")({
@@ -37,20 +37,18 @@ function ContactPage() {
     setIsSubmitting(true);
     
     try {
-      const { error } = await supabase.from("contact_messages").insert({
+      saveLocalMessage({
         name: formData.name,
         email: formData.email,
         project_type: formData.videoType,
         message: `Volume: ${formData.volume}\nLink: ${formData.driveLink}\nNotes: ${formData.notes}`,
       });
 
-      if (error) throw error;
-
       sound.playSuccess();
       setSubmitted(true);
     } catch (error: any) {
       console.error("Error submitting form:", error);
-      toast.error(error.message || "Failed to send message. Please try again.");
+      toast.error("Failed to send message. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

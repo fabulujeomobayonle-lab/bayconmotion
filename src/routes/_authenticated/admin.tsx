@@ -10,10 +10,13 @@ import {
   deleteLocalWork,
   toggleLocalWorkStatus,
   getLocalReviews,
+  getLocalMessages,
+  toggleLocalMessageRead,
   isValidWork,
   clearAllWorks,
   type Work,
-  type ClientReview
+  type ClientReview,
+  type ContactMessage
 } from "@/utils/storage";
 
 const supabase = supabaseTyped as unknown as { from: (table: string) => any };
@@ -82,8 +85,16 @@ function AdminPage() {
   }
 
   async function loadMessages() {
-    const { data } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false });
-    if (data) setMessages(data as unknown as Message[]);
+    const local = getLocalMessages();
+    setMessages(local as unknown as Message[]);
+    try {
+      const { data } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false });
+      if (data && data.length > 0) {
+        const localIds = new Set(local.map((l) => l.id));
+        const remoteUnsynced = (data as unknown as Message[]).filter((d) => !localIds.has(d.id));
+        setMessages([...(local as unknown as Message[]), ...remoteUnsynced]);
+      }
+    } catch {}
   }
 
   function handleSignOut() {
@@ -359,12 +370,9 @@ function AdminPage() {
                       
                       <div className="flex justify-end pt-2">
                         <button
-                          onClick={async () => {
-                            const newStatus = !m.is_read;
-                            const { error } = await supabase.from("contact_messages").update({ is_read: newStatus }).eq("id", m.id);
-                            if (!error) {
-                              setMessages(prev => prev.map(msg => msg.id === m.id ? { ...msg, is_read: newStatus } : msg));
-                            }
+                          onClick={() => {
+                            const newStatus = toggleLocalMessageRead(m.id);
+                            setMessages(prev => prev.map(msg => msg.id === m.id ? { ...msg, is_read: newStatus } : msg));
                           }}
                           className="text-xs font-bold font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase"
                         >
