@@ -518,6 +518,35 @@ export function getLocalPastClients(): PastClient[] {
   }
 }
 
+const toPastClientSupabasePayload = (c: PastClient) => ({
+  id: c.id,
+  client_name: c.client_name,
+  company_or_niche: c.company_or_niche || null,
+  avatar_url: c.avatar_url || null,
+  video_title: c.video_title || `${c.client_name}'s Video`,
+  video_url: c.video_url || (c.video_urls?.[0] || ""),
+  video_urls: c.video_urls || (c.video_url ? [c.video_url] : []),
+  embed_url: c.embed_url || null,
+  thumbnail_url: c.thumbnail_url || null,
+  results_highlight: c.results_highlight || null,
+  testimonial_quote: c.testimonial_quote || null,
+  socials: c.socials || {},
+  status: c.status || "published",
+  sort_order: c.sort_order || 0,
+  created_at: c.created_at || new Date().toISOString(),
+});
+
+export async function syncLocalPastClientsToSupabase(): Promise<void> {
+  try {
+    const local = getLocalPastClients();
+    for (const client of local) {
+      await supabase.from("past_clients").upsert(toPastClientSupabasePayload(client));
+    }
+  } catch (err) {
+    console.warn("syncLocalPastClientsToSupabase warning:", err);
+  }
+}
+
 export function saveLocalPastClient(
   client: Omit<PastClient, "id" | "created_at" | "sort_order"> & { id?: string }
 ): PastClient {
@@ -544,7 +573,7 @@ export function saveLocalPastClient(
 
     (async () => {
       try {
-        await supabase.from("past_clients").upsert(updatedClient);
+        await supabase.from("past_clients").upsert(toPastClientSupabasePayload(updatedClient));
       } catch (err) {
         console.warn("Supabase past_clients sync warning:", err);
       }
@@ -561,7 +590,7 @@ export function saveLocalPastClient(
 
     (async () => {
       try {
-        await supabase.from("past_clients").insert(updatedClient);
+        await supabase.from("past_clients").upsert(toPastClientSupabasePayload(updatedClient));
       } catch (err) {
         console.warn("Supabase past_clients insert sync warning:", err);
       }
@@ -611,4 +640,5 @@ export function toggleLocalPastClientStatus(id: string): "published" | "draft" {
 
   return newStatus;
 }
+
 

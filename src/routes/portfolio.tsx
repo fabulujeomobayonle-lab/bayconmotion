@@ -119,11 +119,10 @@ function PortfolioPage() {
           .order("created_at", { ascending: false });
 
         if (!error && data && data.length > 0) {
-          setPastClients((prev) => {
-            const map = new Map();
-            [...data, ...prev].forEach((item) => map.set(item.id || item.client_name, item));
-            return Array.from(map.values()).filter((c: any) => c.status === "published");
-          });
+          setPastClients(data as PastClient[]);
+          try {
+            localStorage.setItem("baycon_past_clients_v2", JSON.stringify(data));
+          } catch {}
         }
       } catch (err) {
         console.warn("Supabase past_clients load warning:", err);

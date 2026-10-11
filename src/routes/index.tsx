@@ -42,9 +42,13 @@ function HomePage() {
           .from("past_clients")
           .select("*")
           .eq("status", "published")
-          .order("sort_order", { ascending: true });
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: false });
         if (data && data.length > 0) {
           setPastClients(data as PastClient[]);
+          try {
+            localStorage.setItem("baycon_past_clients_v2", JSON.stringify(data));
+          } catch {}
         }
       } catch {}
     })();

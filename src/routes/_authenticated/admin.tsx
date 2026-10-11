@@ -85,17 +85,56 @@ function AdminPage() {
     const local = getLocalPastClients();
     setPastClients(local);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("past_clients")
         .select("*")
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
-      if (data && data.length > 0) {
-        const localIds = new Set(local.map((l) => l.id));
-        const remoteUnsynced = (data as unknown as PastClient[]).filter((d) => !localIds.has(d.id));
-        setPastClients([...local, ...remoteUnsynced]);
+
+      if (!error && data !== null) {
+        if (data.length > 0) {
+          // Check if local has clients not yet on Supabase (e.g. created before SQL was run)
+          const remoteIds = new Set(data.map((d: any) => d.id));
+          const unsynced = local.filter((l) => !remoteIds.has(l.id) && !l.id.startsWith("client-"));
+          if (unsynced.length > 0) {
+            for (const item of unsynced) {
+              await supabase.from("past_clients").upsert(item);
+            }
+            const { data: refetched } = await supabase
+              .from("past_clients")
+              .select("*")
+              .order("sort_order", { ascending: true })
+              .order("created_at", { ascending: false });
+            if (refetched && refetched.length > 0) {
+              setPastClients(refetched as PastClient[]);
+              localStorage.setItem("baycon_past_clients_v2", JSON.stringify(refetched));
+              return;
+            }
+          }
+
+          setPastClients(data as PastClient[]);
+          localStorage.setItem("baycon_past_clients_v2", JSON.stringify(data));
+        } else if (local.length > 0) {
+          // Supabase is empty, sync local custom clients
+          const custom = local.filter((l) => !l.id.startsWith("client-"));
+          const toPush = custom.length > 0 ? custom : local;
+          for (const item of toPush) {
+            await supabase.from("past_clients").upsert(item);
+          }
+          const { data: refetched } = await supabase
+            .from("past_clients")
+            .select("*")
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: false });
+          if (refetched && refetched.length > 0) {
+            setPastClients(refetched as PastClient[]);
+            localStorage.setItem("baycon_past_clients_v2", JSON.stringify(refetched));
+          }
+        }
       }
-    } catch {}
+    } catch (err) {
+      console.warn("Supabase loadPastClients error:", err);
+    }
   }
 
   async function loadWorks() {
