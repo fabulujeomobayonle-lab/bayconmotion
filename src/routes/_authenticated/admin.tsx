@@ -149,53 +149,41 @@ function AdminPage() {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const client_name = (form.get("client_name") as string)?.trim();
-    const company_or_niche = (form.get("company_or_niche") as string)?.trim() || null;
-    const avatar_url = (form.get("avatar_url") as string)?.trim() || null;
-    const video_title = (form.get("video_title") as string)?.trim();
     const video_url = (form.get("video_url") as string)?.trim();
-    const custom_thumb = (form.get("thumbnail_url") as string)?.trim() || null;
-    const results_highlight = (form.get("results_highlight") as string)?.trim() || null;
-    const testimonial_quote = (form.get("testimonial_quote") as string)?.trim() || null;
     const status = (form.get("status") as "published" | "draft") || "published";
 
     const youtube = (form.get("social_youtube") as string)?.trim() || null;
     const instagram = (form.get("social_instagram") as string)?.trim() || null;
     const twitter = (form.get("social_twitter") as string)?.trim() || null;
     const tiktok = (form.get("social_tiktok") as string)?.trim() || null;
-    const website = (form.get("social_website") as string)?.trim() || null;
 
-    if (!client_name || !video_title || !video_url) {
-      return toast.error("Client Name, Video Title, and Video URL are required");
+    if (!client_name || !video_url) {
+      return toast.error("Client Name and YouTube Video Link are required");
     }
 
     setIsSaving(true);
     try {
       const parsedYt = parseYouTubeUrl(video_url);
       const embed_url = parsedYt.embedUrl || video_url;
-      const thumbnail_url = custom_thumb || parsedYt.thumbnailUrl || null;
+      const thumbnail_url = parsedYt.thumbnailUrl || null;
 
       saveLocalPastClient({
         id: editingClient ? editingClient.id : undefined,
         client_name,
-        company_or_niche,
-        avatar_url,
-        video_title,
+        video_title: `${client_name}'s Video`,
         video_url,
         embed_url,
         thumbnail_url,
-        results_highlight,
-        testimonial_quote,
         socials: {
           youtube,
           instagram,
           twitter,
           tiktok,
-          website,
         },
         status,
       });
 
-      toast.success(editingClient ? "Client Profile Updated!" : "Past Client Added & Published!");
+      toast.success(editingClient ? "Client Updated!" : "Past Client Added & Published!");
       setEditingClient(null);
       setShowClientForm(false);
       loadPastClients();
@@ -474,206 +462,98 @@ function AdminPage() {
                   </div>
 
                   <form key={editingClient ? editingClient.id : "new-client"} onSubmit={handleSavePastClient} className="space-y-6">
-                    {/* SECTION 1: PROFILE INFO */}
-                    <div>
-                      <div className="text-[11px] font-mono uppercase tracking-widest text-primary font-bold mb-3 flex items-center gap-1.5">
-                        <Users className="h-3.5 w-3.5" />
-                        <span>Client Information</span>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                            Client / Brand Name *
-                          </label>
-                          <input
-                            name="client_name"
-                            type="text"
-                            required
-                            defaultValue={editingClient?.client_name || ""}
-                            placeholder="e.g. Alex Hormozi or Apex Media"
-                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                            Niche / Industry / Role
-                          </label>
-                          <input
-                            name="company_or_niche"
-                            type="text"
-                            defaultValue={editingClient?.company_or_niche || ""}
-                            placeholder="e.g. Fitness Creator, SaaS Founder"
-                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                            Avatar / Photo URL
-                          </label>
-                          <input
-                            name="avatar_url"
-                            type="url"
-                            defaultValue={editingClient?.avatar_url || ""}
-                            placeholder="https://... (square photo/logo)"
-                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* SECTION 2: VIDEO & METRICS */}
-                    <div className="pt-2 border-t border-border/50">
-                      <div className="text-[11px] font-mono uppercase tracking-widest text-cyan-400 font-bold mb-3 flex items-center gap-1.5">
-                        <Play className="h-3.5 w-3.5" />
-                        <span>Showcase Video & Results</span>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                            Video Project Title *
-                          </label>
-                          <input
-                            name="video_title"
-                            type="text"
-                            required
-                            defaultValue={editingClient?.video_title || ""}
-                            placeholder="e.g. 1.4M View Viral Talking Head Reel"
-                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                            Video Link (YouTube / URL) *
-                          </label>
-                          <input
-                            name="video_url"
-                            type="url"
-                            required
-                            defaultValue={editingClient?.video_url || ""}
-                            placeholder="https://youtube.com/watch?v=..."
-                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                            Results / Stats Highlight
-                          </label>
-                          <input
-                            name="results_highlight"
-                            type="text"
-                            defaultValue={editingClient?.results_highlight || ""}
-                            placeholder="e.g. 🔥 1.4M Views • +45K Followers"
-                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                            Custom Thumbnail URL (Optional)
-                          </label>
-                          <input
-                            name="thumbnail_url"
-                            type="url"
-                            defaultValue={editingClient?.thumbnail_url || ""}
-                            placeholder="Leave empty to auto-extract from YouTube"
-                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                          Client Quote or Feedback (Optional)
+                          Client Name *
                         </label>
-                        <textarea
-                          name="testimonial_quote"
-                          rows={2}
-                          defaultValue={editingClient?.testimonial_quote || ""}
-                          placeholder="e.g. Baycon doubled our watch time and made our editing effortless..."
-                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans resize-none"
+                        <input
+                          name="client_name"
+                          type="text"
+                          required
+                          defaultValue={editingClient?.client_name || ""}
+                          placeholder="e.g. Alex Vance"
+                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                          YouTube Video Link Created For Them *
+                        </label>
+                        <input
+                          name="video_url"
+                          type="url"
+                          required
+                          defaultValue={editingClient?.video_url || ""}
+                          placeholder="https://youtube.com/watch?v=..."
+                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
                         />
                       </div>
                     </div>
 
-                    {/* SECTION 3: SOCIAL MEDIA HANDLES */}
+                    {/* SOCIAL MEDIA HANDLES */}
                     <div className="pt-2 border-t border-border/50">
-                      <div className="text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-bold mb-3 flex items-center gap-1.5">
+                      <div className="text-[11px] font-mono uppercase tracking-widest text-primary font-bold mb-3 flex items-center gap-1.5">
                         <Globe className="h-3.5 w-3.5" />
                         <span>Client Social Media Handles</span>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                           <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
-                            <span className="text-red-500 font-bold">YouTube</span> Handle or Link
-                          </label>
-                          <input
-                            name="social_youtube"
-                            type="text"
-                            defaultValue={editingClient?.socials?.youtube || ""}
-                            placeholder="@channel or full URL"
-                            className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
-                            <span className="text-pink-500 font-bold">Instagram</span> Handle or Link
+                            <span className="text-pink-500 font-bold">Instagram</span>
                           </label>
                           <input
                             name="social_instagram"
                             type="text"
                             defaultValue={editingClient?.socials?.instagram || ""}
-                            placeholder="@handle or full URL"
+                            placeholder="@handle or link"
                             className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
                           />
                         </div>
 
                         <div>
                           <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
-                            <span className="text-cyan-400 font-bold">X (Twitter)</span> Handle or Link
+                            <span className="text-red-500 font-bold">YouTube</span>
+                          </label>
+                          <input
+                            name="social_youtube"
+                            type="text"
+                            defaultValue={editingClient?.socials?.youtube || ""}
+                            placeholder="@channel or link"
+                            className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                            <span className="text-foreground font-bold">X (Twitter)</span>
                           </label>
                           <input
                             name="social_twitter"
                             type="text"
                             defaultValue={editingClient?.socials?.twitter || ""}
-                            placeholder="@handle or full URL"
+                            placeholder="@handle or link"
                             className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
                           />
                         </div>
 
                         <div>
                           <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
-                            <span className="text-cyan-400 font-bold">TikTok</span> Handle or Link
+                            <span className="text-cyan-400 font-bold">TikTok</span>
                           </label>
                           <input
                             name="social_tiktok"
                             type="text"
                             defaultValue={editingClient?.socials?.tiktok || ""}
-                            placeholder="@handle or full URL"
-                            className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
-                            <span className="text-white font-bold">Website / Channel</span> Portfolio Link
-                          </label>
-                          <input
-                            name="social_website"
-                            type="text"
-                            defaultValue={editingClient?.socials?.website || ""}
-                            placeholder="https://clientwebsite.com"
+                            placeholder="@handle or link"
                             className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* SECTION 4: STATUS & SUBMIT */}
+                    {/* STATUS & SUBMIT */}
                     <div className="pt-4 border-t border-border flex flex-wrap items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Status:</label>
@@ -682,7 +562,7 @@ function AdminPage() {
                           defaultValue={editingClient?.status || "published"}
                           className="bg-background border border-border rounded-xl px-4 py-2 text-foreground text-xs font-mono focus:border-primary focus:outline-none cursor-pointer"
                         >
-                          <option value="published">Published (Visible on Portfolio)</option>
+                          <option value="published">Published</option>
                           <option value="draft">Draft (Hidden)</option>
                         </select>
                       </div>
@@ -704,7 +584,7 @@ function AdminPage() {
                           disabled={isSaving}
                           className="rounded-xl bg-primary px-8 py-3.5 font-display text-xs font-bold uppercase tracking-widest text-black shadow-[0_0_25px_rgba(255,26,26,0.4)] hover:bg-primary/90 transition-all flex items-center gap-2 disabled:opacity-50"
                         >
-                          {isSaving ? "SAVING..." : editingClient ? "UPDATE CLIENT" : "SAVE & PUBLISH CLIENT"}
+                          {isSaving ? "SAVING..." : editingClient ? "UPDATE CLIENT" : "ADD PAST CLIENT"}
                           <CheckCircle2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -718,7 +598,7 @@ function AdminPage() {
                 <div className="border border-dashed border-border/60 rounded-3xl p-16 text-center bg-card/20 flex flex-col items-center">
                   <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
                   <p className="text-muted-foreground font-mono">No past clients added yet.</p>
-                  <p className="text-muted-foreground/70 font-mono text-xs mt-1">Feature creator clients with their handles and video edits here.</p>
+                  <p className="text-muted-foreground/70 font-mono text-xs mt-1">Add client names, social media handles, and their YouTube videos here.</p>
                   <button
                     onClick={() => {
                       setShowClientForm(true);
@@ -744,7 +624,7 @@ function AdminPage() {
                           {/* Video Thumbnail */}
                           <div className="aspect-video bg-black relative">
                             {thumb ? (
-                              <img src={thumb} alt={client.video_title} className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity" />
+                              <img src={thumb} alt={client.client_name} className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-zinc-900">
                                 <Play className="h-8 w-8 text-white/30" />
@@ -760,63 +640,31 @@ function AdminPage() {
                                 {client.status}
                               </span>
                             </div>
-
-                            {client.results_highlight && (
-                              <div className="absolute bottom-2.5 left-2.5 right-2.5">
-                                <span className="inline-block bg-black/85 border border-emerald-500/40 text-emerald-400 font-mono text-[9px] font-bold px-2 py-0.5 rounded truncate max-w-full">
-                                  {client.results_highlight}
-                                </span>
-                              </div>
-                            )}
                           </div>
 
-                          {/* Client Profile Details */}
+                          {/* Client Name & Social Handles */}
                           <div className="p-5">
-                            <div className="flex items-center gap-3 mb-3">
-                              {client.avatar_url ? (
-                                <img src={client.avatar_url} alt={client.client_name} className="h-10 w-10 rounded-xl object-cover border border-primary/40 shrink-0" />
-                              ) : (
-                                <div className="h-10 w-10 rounded-xl bg-primary/20 border border-primary/40 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                                  {client.client_name.slice(0, 2).toUpperCase()}
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <h3 className="font-bold text-foreground truncate text-sm">{client.client_name}</h3>
-                                {client.company_or_niche && (
-                                  <p className="text-[11px] font-mono text-muted-foreground truncate">{client.company_or_niche}</p>
-                                )}
-                              </div>
-                            </div>
+                            <h3 className="font-display font-bold text-lg text-foreground mb-3">{client.client_name}</h3>
 
-                            <p className="text-xs text-foreground/90 font-medium line-clamp-1 mb-3">
-                              🎬 {client.video_title}
-                            </p>
-
-                            {/* Social Handles Badges */}
-                            <div className="flex flex-wrap gap-1.5 pt-1 mb-3">
-                              {client.socials?.youtube && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-                                  YT: {client.socials.youtube.replace(/^https?:\/\/(www\.)?youtube\.com\//, "")}
-                                </span>
-                              )}
+                            <div className="flex flex-wrap gap-1.5 mb-2">
                               {client.socials?.instagram && (
                                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-pink-500/10 text-pink-400 border border-pink-500/20">
-                                  IG: {client.socials.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//, "")}
+                                  IG: {client.socials.instagram}
+                                </span>
+                              )}
+                              {client.socials?.youtube && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+                                  YT: {client.socials.youtube}
                                 </span>
                               )}
                               {client.socials?.twitter && (
                                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-white border border-white/20">
-                                  X: {client.socials.twitter.replace(/^https?:\/\/(www\.)?x\.com\//, "")}
+                                  X: {client.socials.twitter}
                                 </span>
                               )}
                               {client.socials?.tiktok && (
                                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                                  TikTok: {client.socials.tiktok.replace(/^https?:\/\/(www\.)?tiktok\.com\//, "")}
-                                </span>
-                              )}
-                              {client.socials?.website && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                  Web
+                                  TikTok: {client.socials.tiktok}
                                 </span>
                               )}
                             </div>
@@ -829,7 +677,7 @@ function AdminPage() {
                             onClick={() => {
                               const newStatus = toggleLocalPastClientStatus(client.id);
                               setPastClients((prev) => prev.map((item) => (item.id === client.id ? { ...item, status: newStatus } : item)));
-                              toast.success(newStatus === "published" ? "Client profile published" : "Client profile hidden");
+                              toast.success(newStatus === "published" ? "Client published" : "Client hidden");
                             }}
                             className="flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-border hover:bg-white/5 transition-colors"
                           >

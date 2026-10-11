@@ -265,14 +265,8 @@ function PortfolioPage() {
           )}
         </section>
 
-        {/* PAST CLIENTS & CREATOR PARTNERS SECTION */}
-        <PastClientsSection
-          clients={pastClients}
-          onSelectProject={(p) => {
-            sound.playClick(600);
-            setSelectedProject(p);
-          }}
-        />
+        {/* PAST CLIENTS SECTION */}
+        <PastClientsSection clients={pastClients} />
       </main>
 
       <Footer />
