@@ -9,7 +9,8 @@ import { sound } from "@/components/SoundSystem";
 import { useState, useEffect } from "react";
 import { Play, Sparkles, Zap, Flame, Shield, ArrowRight, Star, Film, Sliders, CheckCircle2, TrendingUp } from "lucide-react";
 import { VideoModal, type ProjectData } from "@/components/VideoModal";
-import { getLocalWorks, isValidWork } from "@/utils/storage";
+import { PastClientsSection } from "@/components/PastClientsSection";
+import { getLocalWorks, isValidWork, getLocalPastClients, type PastClient } from "@/utils/storage";
 import { parseYouTubeUrl } from "@/utils/video";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
 
@@ -29,6 +30,25 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
+  const [pastClients, setPastClients] = useState<PastClient[]>([]);
+
+  useEffect(() => {
+    const local = getLocalPastClients().filter((c) => c.status === "published");
+    setPastClients(local);
+
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("past_clients")
+          .select("*")
+          .eq("status", "published")
+          .order("sort_order", { ascending: true });
+        if (data && data.length > 0) {
+          setPastClients(data as PastClient[]);
+        }
+      } catch {}
+    })();
+  }, []);
 
 
   return (
@@ -121,14 +141,16 @@ function HomePage() {
           <BeforeAfterSlider />
         </section>
 
-        {/* PORTFOLIO SHOWCASE CTA */}
-        <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
-          <div className="rounded-3xl border border-primary/20 bg-card/40 p-8 md:p-12 backdrop-blur-sm text-center shadow-[0_0_30px_rgba(255,26,26,0.1)] hover:border-primary/50 transition-colors">
-            <Film className="h-12 w-12 text-primary mx-auto mb-6" />
-            <h2 className="font-impact text-3xl sm:text-5xl text-foreground uppercase tracking-wide mb-4">
-              OUR <span className="text-cyan-400 neon-text">PORTFOLIO</span>
+        {/* PORTFOLIO & PAST CLIENTS SECTION */}
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+          <PastClientsSection clients={pastClients} />
+
+          <div className="rounded-3xl border border-primary/20 bg-card/40 p-8 md:p-12 backdrop-blur-sm text-center shadow-[0_0_30px_rgba(255,26,26,0.1)] hover:border-primary/50 transition-colors mt-12 max-w-4xl mx-auto">
+            <Film className="h-10 w-10 text-primary mx-auto mb-4" />
+            <h2 className="font-impact text-2xl sm:text-4xl text-foreground uppercase tracking-wide mb-3">
+              VIEW OUR FULL <span className="text-cyan-400 neon-text">VIDEO SHOWCASE</span>
             </h2>
-            <p className="text-sm text-muted-foreground font-mono max-w-xl mx-auto mb-8">
+            <p className="text-sm text-muted-foreground font-mono max-w-xl mx-auto mb-6">
               Explore our full collection of client reels, YouTube long-form content, and commercial spots. See exactly how we engineer videos for maximum retention.
             </p>
             

@@ -64,6 +64,7 @@ export type PastClient = {
   avatar_url?: string | null;
   video_title: string;
   video_url: string;
+  video_urls?: string[];
   embed_url?: string | null;
   thumbnail_url?: string | null;
   results_highlight?: string | null;
@@ -448,6 +449,10 @@ export const INITIAL_PAST_CLIENTS: PastClient[] = [
     client_name: "Alex Vance",
     video_title: "Alex Vance Video",
     video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    video_urls: [
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    ],
     embed_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
     thumbnail_url: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&auto=format&fit=crop&q=80",
     socials: {
@@ -464,6 +469,9 @@ export const INITIAL_PAST_CLIENTS: PastClient[] = [
     client_name: "Apex Kinetic",
     video_title: "Apex Kinetic Video",
     video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    video_urls: [
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    ],
     embed_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
     thumbnail_url: "https://images.unsplash.com/photo-1535016120720-40c646be5580?w=800&auto=format&fit=crop&q=80",
     socials: {
@@ -479,6 +487,9 @@ export const INITIAL_PAST_CLIENTS: PastClient[] = [
     client_name: "Elena Rostova",
     video_title: "Elena Rostova Video",
     video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    video_urls: [
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    ],
     embed_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
     thumbnail_url: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=800&auto=format&fit=crop&q=80",
     socials: {

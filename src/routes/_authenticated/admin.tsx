@@ -70,6 +70,7 @@ function AdminPage() {
   const [pastClients, setPastClients] = useState<PastClient[]>([]);
   const [editingClient, setEditingClient] = useState<PastClient | null>(null);
   const [showClientForm, setShowClientForm] = useState(false);
+  const [clientVideoUrls, setClientVideoUrls] = useState<string[]>([""]);
   const [tab, setTab] = useState<"add_youtube" | "works" | "past_clients" | "reviews" | "messages">("add_youtube");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -149,7 +150,6 @@ function AdminPage() {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const client_name = (form.get("client_name") as string)?.trim();
-    const video_url = (form.get("video_url") as string)?.trim();
     const status = (form.get("status") as "published" | "draft") || "published";
 
     const youtube = (form.get("social_youtube") as string)?.trim() || null;
@@ -157,21 +157,29 @@ function AdminPage() {
     const twitter = (form.get("social_twitter") as string)?.trim() || null;
     const tiktok = (form.get("social_tiktok") as string)?.trim() || null;
 
-    if (!client_name || !video_url) {
-      return toast.error("Client Name and YouTube Video Link are required");
+    const validVideoUrls = clientVideoUrls.map((u) => u.trim()).filter(Boolean);
+
+    if (!client_name) {
+      return toast.error("Client Name is required");
     }
+    if (validVideoUrls.length === 0) {
+      return toast.error("At least one YouTube video link is required");
+    }
+
+    const primaryVideo = validVideoUrls[0];
 
     setIsSaving(true);
     try {
-      const parsedYt = parseYouTubeUrl(video_url);
-      const embed_url = parsedYt.embedUrl || video_url;
+      const parsedYt = parseYouTubeUrl(primaryVideo);
+      const embed_url = parsedYt.embedUrl || primaryVideo;
       const thumbnail_url = parsedYt.thumbnailUrl || null;
 
       saveLocalPastClient({
         id: editingClient ? editingClient.id : undefined,
         client_name,
         video_title: `${client_name}'s Video`,
-        video_url,
+        video_url: primaryVideo,
+        video_urls: validVideoUrls,
         embed_url,
         thumbnail_url,
         socials: {
@@ -186,6 +194,7 @@ function AdminPage() {
       toast.success(editingClient ? "Client Updated!" : "Past Client Added & Published!");
       setEditingClient(null);
       setShowClientForm(false);
+      setClientVideoUrls([""]);
       loadPastClients();
     } catch (err: any) {
       toast.error(err.message || "Failed to save client");
@@ -424,8 +433,9 @@ function AdminPage() {
                       setShowClientForm(false);
                       setEditingClient(null);
                     } else {
-                      setShowClientForm(true);
                       setEditingClient(null);
+                      setClientVideoUrls([""]);
+                      setShowClientForm(true);
                     }
                   }}
                   className="rounded-xl bg-primary px-6 py-3 font-display text-xs font-bold uppercase tracking-widest text-black shadow-[0_0_20px_rgba(255,26,26,0.4)] hover:bg-primary/90 transition-all flex items-center gap-2"
@@ -462,34 +472,72 @@ function AdminPage() {
                   </div>
 
                   <form key={editingClient ? editingClient.id : "new-client"} onSubmit={handleSavePastClient} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                          Client Name *
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                        Client Name *
+                      </label>
+                      <input
+                        name="client_name"
+                        type="text"
+                        required
+                        defaultValue={editingClient?.client_name || ""}
+                        placeholder="e.g. Alex Vance"
+                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
+                      />
+                    </div>
+
+                    {/* MULTIPLE YOUTUBE VIDEO LINKS */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          YouTube Video Links Created For Them *
                         </label>
-                        <input
-                          name="client_name"
-                          type="text"
-                          required
-                          defaultValue={editingClient?.client_name || ""}
-                          placeholder="e.g. Alex Vance"
-                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
-                        />
+                        <span className="text-[10px] font-mono text-cyan-400">
+                          {clientVideoUrls.length} {clientVideoUrls.length === 1 ? "Video Link" : "Video Links"}
+                        </span>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                          YouTube Video Link Created For Them *
-                        </label>
-                        <input
-                          name="video_url"
-                          type="url"
-                          required
-                          defaultValue={editingClient?.video_url || ""}
-                          placeholder="https://youtube.com/watch?v=..."
-                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
-                        />
+                      <div className="space-y-2.5">
+                        {clientVideoUrls.map((url, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <div className="flex items-center justify-center h-11 w-11 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 font-mono text-xs font-bold shrink-0">
+                              #{idx + 1}
+                            </div>
+                            <input
+                              type="url"
+                              value={url}
+                              onChange={(e) => {
+                                const next = [...clientVideoUrls];
+                                next[idx] = e.target.value;
+                                setClientVideoUrls(next);
+                              }}
+                              placeholder={`https://youtube.com/watch?v=... (Video ${idx + 1})`}
+                              className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
+                            />
+                            {clientVideoUrls.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setClientVideoUrls(clientVideoUrls.filter((_, i) => i !== idx));
+                                }}
+                                className="p-3 rounded-xl border border-border text-muted-foreground hover:text-red-400 hover:border-red-400/50 transition-colors shrink-0"
+                                title="Remove Video Link"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setClientVideoUrls([...clientVideoUrls, ""])}
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-dashed border-cyan-500/40 bg-cyan-500/10 px-4 py-2 font-mono text-xs font-bold text-cyan-400 hover:bg-cyan-500/20 transition-all cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>+ Add Another YouTube Video Link</span>
+                      </button>
                     </div>
 
                     {/* SOCIAL MEDIA HANDLES */}
@@ -687,6 +735,11 @@ function AdminPage() {
                           <button
                             onClick={() => {
                               setEditingClient(client);
+                              setClientVideoUrls(
+                                client.video_urls && client.video_urls.length > 0
+                                  ? client.video_urls
+                                  : [client.video_url || ""]
+                              );
                               setShowClientForm(true);
                               window.scrollTo({ top: 0, behavior: "smooth" });
                             }}

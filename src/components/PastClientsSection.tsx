@@ -2,7 +2,7 @@ import { useState } from "react";
 import { sound } from "@/components/SoundSystem";
 import { type PastClient } from "@/utils/storage";
 import { parseYouTubeUrl } from "@/utils/video";
-import { Users, ExternalLink, ChevronDown, ChevronUp, Play, Sparkles } from "lucide-react";
+import { Users, ExternalLink, Play, Film } from "lucide-react";
 
 export function formatSocialUrl(
   platform: "youtube" | "instagram" | "twitter" | "tiktok" | "website",
@@ -91,13 +91,22 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
   const [activeClientId, setActiveClientId] = useState<string | null>(
     publishedClients.length > 0 ? publishedClients[0].id : null
   );
+  const [activeVideoIndex, setActiveVideoIndex] = useState<number>(0);
 
   if (publishedClients.length === 0) {
     return null;
   }
 
   const activeClient = publishedClients.find((c) => c.id === activeClientId) || publishedClients[0];
-  const yt = parseYouTubeUrl(activeClient?.embed_url || activeClient?.video_url);
+
+  const videoList = (
+    activeClient?.video_urls && activeClient.video_urls.length > 0
+      ? activeClient.video_urls
+      : [activeClient?.video_url]
+  ).filter(Boolean);
+
+  const currentVideoUrl = videoList[activeVideoIndex] || videoList[0] || "";
+  const yt = parseYouTubeUrl(currentVideoUrl);
 
   const socialKeys: (keyof typeof activeClient.socials)[] = ["youtube", "instagram", "twitter", "tiktok", "website"];
   const activeSocials = activeClient
@@ -117,7 +126,7 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
         </h2>
 
         <p className="text-sm text-muted-foreground font-sans">
-          Click any client below to view their social media handles and watch the YouTube video created for them.
+          Click any client below to view their social media handles and watch the YouTube videos created for them.
         </p>
       </div>
 
@@ -125,20 +134,32 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
       <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
         {publishedClients.map((client) => {
           const isSelected = activeClientId === client.id;
+          const count = client.video_urls && client.video_urls.length > 0 ? client.video_urls.length : 1;
+
           return (
             <button
               key={client.id}
               onClick={() => {
                 sound.playClick(650);
                 setActiveClientId(client.id);
+                setActiveVideoIndex(0);
               }}
-              className={`group flex items-center gap-2 rounded-2xl px-6 py-3.5 font-display text-sm font-bold uppercase tracking-wider transition-all duration-300 ${
+              className={`group flex items-center gap-2.5 rounded-2xl px-6 py-3.5 font-display text-sm font-bold uppercase tracking-wider transition-all duration-300 ${
                 isSelected
                   ? "bg-primary text-black shadow-[0_0_25px_rgba(255,26,26,0.6)] scale-105"
                   : "border border-border/80 bg-card/60 text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-card/90"
               }`}
             >
               <span>{client.client_name}</span>
+              {count > 1 && (
+                <span
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                    isSelected ? "bg-black/25 text-black font-bold" : "bg-primary/20 text-primary border border-primary/30"
+                  }`}
+                >
+                  {count} videos
+                </span>
+              )}
               <Play className={`h-3.5 w-3.5 transition-transform ${isSelected ? "fill-black rotate-90" : "opacity-40 group-hover:opacity-100"}`} />
             </button>
           );
@@ -192,27 +213,64 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
             </div>
           </div>
 
+          {/* MULTIPLE VIDEOS SELECTOR TABS (IF > 1) */}
+          {videoList.length > 1 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Film className="h-3.5 w-3.5 text-cyan-400" />
+                  <span>SELECT VIDEO TO WATCH ({videoList.length} VIDEOS)</span>
+                </span>
+                <span className="text-cyan-400 font-bold">Playing Video {activeVideoIndex + 1} of {videoList.length}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {videoList.map((url, idx) => (
+                  <button
+                    key={url + idx}
+                    onClick={() => {
+                      sound.playClick(700);
+                      setActiveVideoIndex(idx);
+                    }}
+                    className={`rounded-xl px-4 py-2 font-mono text-xs font-bold transition-all flex items-center gap-2 ${
+                      activeVideoIndex === idx
+                        ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(0,255,249,0.5)] scale-102"
+                        : "border border-border/80 bg-background/60 text-muted-foreground hover:text-foreground hover:border-cyan-500/50"
+                    }`}
+                  >
+                    <Play className={`h-3 w-3 ${activeVideoIndex === idx ? "fill-black" : ""}`} />
+                    <span>Video {idx + 1}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* YOUTUBE VIDEO SECTION */}
           <div>
             <div className="flex items-center justify-between mb-3 font-mono text-xs">
               <span className="text-cyan-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
                 <Play className="h-3.5 w-3.5 fill-cyan-400" />
-                <span>YOUTUBE VIDEO CREATED FOR {activeClient.client_name.toUpperCase()}</span>
+                <span>
+                  YOUTUBE VIDEO {videoList.length > 1 ? `#${activeVideoIndex + 1}` : ""} CREATED FOR {activeClient.client_name.toUpperCase()}
+                </span>
               </span>
-              <a
-                href={activeClient.video_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-cyan-400 hover:underline"
-              >
-                <span>Open in YouTube</span>
-                <ExternalLink className="h-3 w-3" />
-              </a>
+              {currentVideoUrl && (
+                <a
+                  href={currentVideoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-cyan-400 hover:underline"
+                >
+                  <span>Open in YouTube</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
             </div>
 
             <div className="relative aspect-video w-full rounded-2xl bg-black overflow-hidden border border-border shadow-2xl">
               {yt.embedUrl ? (
                 <iframe
+                  key={currentVideoUrl}
                   src={yt.embedUrl}
                   title={`Video for ${activeClient.client_name}`}
                   className="w-full h-full border-0"
@@ -223,7 +281,7 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
                 <div className="flex h-full w-full flex-col items-center justify-center space-y-3 bg-zinc-950 p-6 text-center">
                   <Play className="h-12 w-12 text-primary animate-pulse" />
                   <a
-                    href={activeClient.video_url}
+                    href={currentVideoUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="rounded-xl bg-primary px-6 py-2.5 font-display text-xs font-bold uppercase text-black hover:bg-primary/90 transition-all"
