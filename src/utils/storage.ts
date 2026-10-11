@@ -49,6 +49,31 @@ export type ContactMessage = {
   created_at: string;
 };
 
+export type PastClientSocials = {
+  youtube?: string | null;
+  instagram?: string | null;
+  twitter?: string | null;
+  tiktok?: string | null;
+  website?: string | null;
+};
+
+export type PastClient = {
+  id: string;
+  client_name: string;
+  company_or_niche?: string | null;
+  avatar_url?: string | null;
+  video_title: string;
+  video_url: string;
+  embed_url?: string | null;
+  thumbnail_url?: string | null;
+  results_highlight?: string | null;
+  testimonial_quote?: string | null;
+  socials: PastClientSocials;
+  status: "draft" | "published";
+  sort_order: number;
+  created_at: string;
+};
+
 const INITIAL_WORKS: Work[] = [];
 
 export const BANNED_WORK_IDS = new Set([
@@ -60,6 +85,7 @@ const STORAGE_KEY_WORKS = "baycon_works_v2";
 const STORAGE_KEY_REVIEWS = "baycon_reviews_v2";
 const STORAGE_KEY_DELETED = "baycon_deleted_works_v2";
 const STORAGE_KEY_MESSAGES = "baycon_messages_v1";
+const STORAGE_KEY_PAST_CLIENTS = "baycon_past_clients_v2";
 
 export function getDeletedWorkIds(): Set<string> {
   try {
@@ -415,3 +441,176 @@ export function fileToDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+export const INITIAL_PAST_CLIENTS: PastClient[] = [
+  {
+    id: "client-1",
+    client_name: "Alex Vance",
+    company_or_niche: "Fitness & Mindset Creator",
+    avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    video_title: "1.4M View Viral Talking Head Reel",
+    video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    embed_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    thumbnail_url: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&auto=format&fit=crop&q=80",
+    results_highlight: "🔥 1.4M Views • +42K Followers",
+    testimonial_quote: "Baycon transformed our watch time. Our audience retention jumped from 40% to 75% on every single post.",
+    socials: {
+      youtube: "https://youtube.com/@alexvancefit",
+      instagram: "https://instagram.com/alexvancefit",
+      twitter: "https://x.com/alexvance",
+    },
+    status: "published",
+    sort_order: 1,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "client-2",
+    client_name: "Apex Kinetic",
+    company_or_niche: "B2B SaaS & Tech Growth",
+    avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+    video_title: "3D Motion Graphics Explainer Reel",
+    video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    embed_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    thumbnail_url: "https://images.unsplash.com/photo-1535016120720-40c646be5580?w=800&auto=format&fit=crop&q=80",
+    results_highlight: "⚡ 890K Views • 3.4x Conversions",
+    testimonial_quote: "The motion graphics and sound design Baycon delivered made our B2B software look like an Apple keynote.",
+    socials: {
+      youtube: "https://youtube.com/@apexkinetic",
+      twitter: "https://x.com/apexkinetic",
+      website: "https://apexkinetic.io",
+    },
+    status: "published",
+    sort_order: 2,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "client-3",
+    client_name: "Elena Rostova",
+    company_or_niche: "Finance & Wealth Channel",
+    avatar_url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80",
+    video_title: "High-Paced Documentary YouTube Series",
+    video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    embed_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    thumbnail_url: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=800&auto=format&fit=crop&q=80",
+    results_highlight: "🚀 2.1M YouTube Views • 82% Retention",
+    testimonial_quote: "Baycon is the secret weapon behind our viral long-form documentary videos. The pacing is unmatched.",
+    socials: {
+      youtube: "https://youtube.com/@elenarostova",
+      instagram: "https://instagram.com/elenarostova",
+      tiktok: "https://tiktok.com/@elenarostova",
+    },
+    status: "published",
+    sort_order: 3,
+    created_at: new Date().toISOString(),
+  },
+];
+
+export function getLocalPastClients(): PastClient[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PAST_CLIENTS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEY_PAST_CLIENTS, JSON.stringify(INITIAL_PAST_CLIENTS));
+      return INITIAL_PAST_CLIENTS;
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed;
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalPastClient(
+  client: Omit<PastClient, "id" | "created_at" | "sort_order"> & { id?: string }
+): PastClient {
+  const current = getLocalPastClients();
+  let updatedClient: PastClient;
+
+  if (client.id) {
+    const existing = current.find((c) => c.id === client.id);
+    let finalId = client.id;
+    if (!isUuid(finalId) && !finalId.startsWith("client-")) {
+      finalId = generateId();
+    }
+
+    updatedClient = {
+      ...(existing || {}),
+      ...client,
+      id: finalId,
+      created_at: existing?.created_at || new Date().toISOString(),
+      sort_order: existing?.sort_order || 1,
+    } as PastClient;
+
+    const next = current.map((c) => (c.id === client.id ? updatedClient : c));
+    localStorage.setItem(STORAGE_KEY_PAST_CLIENTS, JSON.stringify(next));
+
+    (async () => {
+      try {
+        await supabase.from("past_clients").upsert(updatedClient);
+      } catch (err) {
+        console.warn("Supabase past_clients sync warning:", err);
+      }
+    })();
+  } else {
+    updatedClient = {
+      ...client,
+      id: generateId(),
+      sort_order: current.length + 1,
+      created_at: new Date().toISOString(),
+    };
+    const next = [updatedClient, ...current];
+    localStorage.setItem(STORAGE_KEY_PAST_CLIENTS, JSON.stringify(next));
+
+    (async () => {
+      try {
+        await supabase.from("past_clients").insert(updatedClient);
+      } catch (err) {
+        console.warn("Supabase past_clients insert sync warning:", err);
+      }
+    })();
+  }
+
+  return updatedClient;
+}
+
+export function deleteLocalPastClient(id: string): void {
+  const current = getLocalPastClients();
+  const next = current.filter((c) => c.id !== id);
+  localStorage.setItem(STORAGE_KEY_PAST_CLIENTS, JSON.stringify(next));
+
+  (async () => {
+    try {
+      await supabase.from("past_clients").delete().eq("id", id);
+    } catch (err) {
+      console.warn("Supabase past_clients delete sync warning:", err);
+    }
+  })();
+}
+
+export function toggleLocalPastClientStatus(id: string): "published" | "draft" {
+  const current = getLocalPastClients();
+  let newStatus: "published" | "draft" = "draft";
+  let targetClient: PastClient | undefined;
+
+  const next = current.map((c) => {
+    if (c.id === id) {
+      newStatus = c.status === "published" ? "draft" : "published";
+      targetClient = { ...c, status: newStatus };
+      return targetClient;
+    }
+    return c;
+  });
+
+  localStorage.setItem(STORAGE_KEY_PAST_CLIENTS, JSON.stringify(next));
+
+  (async () => {
+    try {
+      await supabase.from("past_clients").update({ status: newStatus }).eq("id", id);
+    } catch (err) {
+      console.warn("Supabase past_clients toggle status sync warning:", err);
+    }
+  })();
+
+  return newStatus;
+}
+

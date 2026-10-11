@@ -5,12 +5,13 @@ import { CyberBackground } from "@/components/CyberBackground";
 import { CyberCursor } from "@/components/CyberCursor";
 import { PageTransitionTrigger } from "@/components/PageTransition";
 import { VideoModal, type ProjectData } from "@/components/VideoModal";
+import { PastClientsSection } from "@/components/PastClientsSection";
 import { sound } from "@/components/SoundSystem";
 import { useEffect, useState } from "react";
-import { Film, Play } from "lucide-react";
+import { Film, Play, Users } from "lucide-react";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
 import { parseYouTubeUrl } from "@/utils/video";
-import { getLocalWorks, isValidWork } from "@/utils/storage";
+import { getLocalWorks, isValidWork, getLocalPastClients, type PastClient } from "@/utils/storage";
 
 const supabase = supabaseTyped as unknown as {
   from: (table: string) => any;
@@ -30,6 +31,7 @@ function PortfolioPage() {
   const [filter, setFilter] = useState<string>("ALL");
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
   const [dbProjects, setDbProjects] = useState<ProjectData[]>([]);
+  const [pastClients, setPastClients] = useState<PastClient[]>([]);
 
   useEffect(() => {
     async function loadWorks() {
@@ -103,7 +105,33 @@ function PortfolioPage() {
         console.error("Error loading portfolio works:", err);
       }
     }
+
+    async function loadPastClients() {
+      const localClients = getLocalPastClients().filter((c) => c.status === "published");
+      setPastClients(localClients);
+
+      try {
+        const { data, error } = await supabase
+          .from("past_clients")
+          .select("*")
+          .eq("status", "published")
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          setPastClients((prev) => {
+            const map = new Map();
+            [...data, ...prev].forEach((item) => map.set(item.id || item.client_name, item));
+            return Array.from(map.values()).filter((c: any) => c.status === "published");
+          });
+        }
+      } catch (err) {
+        console.warn("Supabase past_clients load warning:", err);
+      }
+    }
+
     loadWorks();
+    loadPastClients();
   }, []);
 
   const projects = dbProjects;
@@ -236,6 +264,15 @@ function PortfolioPage() {
             </div>
           )}
         </section>
+
+        {/* PAST CLIENTS & CREATOR PARTNERS SECTION */}
+        <PastClientsSection
+          clients={pastClients}
+          onSelectProject={(p) => {
+            sound.playClick(600);
+            setSelectedProject(p);
+          }}
+        />
       </main>
 
       <Footer />

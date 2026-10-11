@@ -2,7 +2,24 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
-import { LogOut, Trash2, ExternalLink, Youtube, MessageSquare, Star, Film, CheckCircle2 } from "lucide-react";
+import {
+  LogOut,
+  Trash2,
+  ExternalLink,
+  Youtube,
+  MessageSquare,
+  Star,
+  Film,
+  CheckCircle2,
+  Users,
+  Plus,
+  Pencil,
+  X,
+  Globe,
+  Sparkles,
+  TrendingUp,
+  Play
+} from "lucide-react";
 import { parseYouTubeUrl } from "@/utils/video";
 import {
   getLocalWorks,
@@ -14,9 +31,14 @@ import {
   toggleLocalMessageRead,
   isValidWork,
   clearAllWorks,
+  getLocalPastClients,
+  saveLocalPastClient,
+  deleteLocalPastClient,
+  toggleLocalPastClientStatus,
   type Work,
   type ClientReview,
-  type ContactMessage
+  type ContactMessage,
+  type PastClient
 } from "@/utils/storage";
 
 const supabase = supabaseTyped as unknown as { from: (table: string) => any };
@@ -45,14 +67,35 @@ function AdminPage() {
   const [works, setWorks] = useState<Work[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [reviews, setReviews] = useState<ClientReview[]>([]);
-  const [tab, setTab] = useState<"add_youtube" | "works" | "reviews" | "messages">("add_youtube");
+  const [pastClients, setPastClients] = useState<PastClient[]>([]);
+  const [editingClient, setEditingClient] = useState<PastClient | null>(null);
+  const [showClientForm, setShowClientForm] = useState(false);
+  const [tab, setTab] = useState<"add_youtube" | "works" | "past_clients" | "reviews" | "messages">("add_youtube");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadWorks();
+    loadPastClients();
     loadMessages();
     loadReviews();
   }, []);
+
+  async function loadPastClients() {
+    const local = getLocalPastClients();
+    setPastClients(local);
+    try {
+      const { data } = await supabase
+        .from("past_clients")
+        .select("*")
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
+      if (data && data.length > 0) {
+        const localIds = new Set(local.map((l) => l.id));
+        const remoteUnsynced = (data as unknown as PastClient[]).filter((d) => !localIds.has(d.id));
+        setPastClients([...local, ...remoteUnsynced]);
+      }
+    } catch {}
+  }
 
   async function loadWorks() {
     const local = getLocalWorks().filter(isValidWork);
@@ -100,6 +143,67 @@ function AdminPage() {
   function handleSignOut() {
     localStorage.removeItem("baycon_admin");
     navigate({ to: "/auth" });
+  }
+
+  async function handleSavePastClient(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const client_name = (form.get("client_name") as string)?.trim();
+    const company_or_niche = (form.get("company_or_niche") as string)?.trim() || null;
+    const avatar_url = (form.get("avatar_url") as string)?.trim() || null;
+    const video_title = (form.get("video_title") as string)?.trim();
+    const video_url = (form.get("video_url") as string)?.trim();
+    const custom_thumb = (form.get("thumbnail_url") as string)?.trim() || null;
+    const results_highlight = (form.get("results_highlight") as string)?.trim() || null;
+    const testimonial_quote = (form.get("testimonial_quote") as string)?.trim() || null;
+    const status = (form.get("status") as "published" | "draft") || "published";
+
+    const youtube = (form.get("social_youtube") as string)?.trim() || null;
+    const instagram = (form.get("social_instagram") as string)?.trim() || null;
+    const twitter = (form.get("social_twitter") as string)?.trim() || null;
+    const tiktok = (form.get("social_tiktok") as string)?.trim() || null;
+    const website = (form.get("social_website") as string)?.trim() || null;
+
+    if (!client_name || !video_title || !video_url) {
+      return toast.error("Client Name, Video Title, and Video URL are required");
+    }
+
+    setIsSaving(true);
+    try {
+      const parsedYt = parseYouTubeUrl(video_url);
+      const embed_url = parsedYt.embedUrl || video_url;
+      const thumbnail_url = custom_thumb || parsedYt.thumbnailUrl || null;
+
+      saveLocalPastClient({
+        id: editingClient ? editingClient.id : undefined,
+        client_name,
+        company_or_niche,
+        avatar_url,
+        video_title,
+        video_url,
+        embed_url,
+        thumbnail_url,
+        results_highlight,
+        testimonial_quote,
+        socials: {
+          youtube,
+          instagram,
+          twitter,
+          tiktok,
+          website,
+        },
+        status,
+      });
+
+      toast.success(editingClient ? "Client Profile Updated!" : "Past Client Added & Published!");
+      setEditingClient(null);
+      setShowClientForm(false);
+      loadPastClients();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save client");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function handleAddYouTube(e: FormEvent<HTMLFormElement>) {
@@ -152,6 +256,7 @@ function AdminPage() {
         <nav className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto">
           <SidebarButton active={tab === "add_youtube"} onClick={() => setTab("add_youtube")} icon={<Youtube className="h-4 w-4" />} label="Add YouTube Video" />
           <SidebarButton active={tab === "works"} onClick={() => setTab("works")} icon={<Film className="h-4 w-4" />} label="Manage Portfolio" count={works.length} />
+          <SidebarButton active={tab === "past_clients"} onClick={() => { setTab("past_clients"); setEditingClient(null); }} icon={<Users className="h-4 w-4" />} label="Past Clients" count={pastClients.length} />
           <SidebarButton active={tab === "reviews"} onClick={() => setTab("reviews")} icon={<Star className="h-4 w-4" />} label="Client Reviews" count={reviews.length} />
           <SidebarButton active={tab === "messages"} onClick={() => setTab("messages")} icon={<MessageSquare className="h-4 w-4" />} label="Inbox" count={unreadCount || undefined} alert={unreadCount > 0} />
         </nav>
@@ -307,6 +412,469 @@ function AdminPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "past_clients" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+              <div className="flex flex-wrap items-end justify-between gap-4 mb-2">
+                <div>
+                  <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 border border-primary/20 text-primary mb-4">
+                    <Users className="h-8 w-8" />
+                  </div>
+                  <h1 className="font-impact text-4xl sm:text-5xl uppercase tracking-tight mb-2">Past Clients & Creators</h1>
+                  <p className="text-muted-foreground font-mono text-sm max-w-xl">
+                    Add and organize your client case studies, social media handles, subscriber reach, and their showcase videos.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (showClientForm || editingClient) {
+                      setShowClientForm(false);
+                      setEditingClient(null);
+                    } else {
+                      setShowClientForm(true);
+                      setEditingClient(null);
+                    }
+                  }}
+                  className="rounded-xl bg-primary px-6 py-3 font-display text-xs font-bold uppercase tracking-widest text-black shadow-[0_0_20px_rgba(255,26,26,0.4)] hover:bg-primary/90 transition-all flex items-center gap-2"
+                >
+                  {showClientForm || editingClient ? (
+                    <>
+                      <X className="h-4 w-4" />
+                      <span>Close Form</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      <span>Add Past Client</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* CLIENT FORM (ADD OR EDIT) */}
+              {(showClientForm || editingClient) && (
+                <div className="bg-card/60 border border-primary/30 p-8 rounded-3xl backdrop-blur-xl shadow-2xl animate-in fade-in duration-300">
+                  <div className="flex items-center justify-between border-b border-border/80 pb-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2.5 w-2.5 rounded-full bg-primary animate-pulse" />
+                      <h3 className="font-display text-lg font-bold text-foreground uppercase tracking-wide">
+                        {editingClient ? `Editing Client: ${editingClient.client_name}` : "New Past Client Showcase"}
+                      </h3>
+                    </div>
+                    {editingClient && (
+                      <span className="text-[10px] font-mono uppercase bg-primary/20 text-primary px-2.5 py-1 rounded-md border border-primary/30">
+                        Edit Mode
+                      </span>
+                    )}
+                  </div>
+
+                  <form key={editingClient ? editingClient.id : "new-client"} onSubmit={handleSavePastClient} className="space-y-6">
+                    {/* SECTION 1: PROFILE INFO */}
+                    <div>
+                      <div className="text-[11px] font-mono uppercase tracking-widest text-primary font-bold mb-3 flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>Client Information</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                            Client / Brand Name *
+                          </label>
+                          <input
+                            name="client_name"
+                            type="text"
+                            required
+                            defaultValue={editingClient?.client_name || ""}
+                            placeholder="e.g. Alex Hormozi or Apex Media"
+                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                            Niche / Industry / Role
+                          </label>
+                          <input
+                            name="company_or_niche"
+                            type="text"
+                            defaultValue={editingClient?.company_or_niche || ""}
+                            placeholder="e.g. Fitness Creator, SaaS Founder"
+                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                            Avatar / Photo URL
+                          </label>
+                          <input
+                            name="avatar_url"
+                            type="url"
+                            defaultValue={editingClient?.avatar_url || ""}
+                            placeholder="https://... (square photo/logo)"
+                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: VIDEO & METRICS */}
+                    <div className="pt-2 border-t border-border/50">
+                      <div className="text-[11px] font-mono uppercase tracking-widest text-cyan-400 font-bold mb-3 flex items-center gap-1.5">
+                        <Play className="h-3.5 w-3.5" />
+                        <span>Showcase Video & Results</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                            Video Project Title *
+                          </label>
+                          <input
+                            name="video_title"
+                            type="text"
+                            required
+                            defaultValue={editingClient?.video_title || ""}
+                            placeholder="e.g. 1.4M View Viral Talking Head Reel"
+                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                            Video Link (YouTube / URL) *
+                          </label>
+                          <input
+                            name="video_url"
+                            type="url"
+                            required
+                            defaultValue={editingClient?.video_url || ""}
+                            placeholder="https://youtube.com/watch?v=..."
+                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                            Results / Stats Highlight
+                          </label>
+                          <input
+                            name="results_highlight"
+                            type="text"
+                            defaultValue={editingClient?.results_highlight || ""}
+                            placeholder="e.g. 🔥 1.4M Views • +45K Followers"
+                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                            Custom Thumbnail URL (Optional)
+                          </label>
+                          <input
+                            name="thumbnail_url"
+                            type="url"
+                            defaultValue={editingClient?.thumbnail_url || ""}
+                            placeholder="Leave empty to auto-extract from YouTube"
+                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                          Client Quote or Feedback (Optional)
+                        </label>
+                        <textarea
+                          name="testimonial_quote"
+                          rows={2}
+                          defaultValue={editingClient?.testimonial_quote || ""}
+                          placeholder="e.g. Baycon doubled our watch time and made our editing effortless..."
+                          className="w-full bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-sans resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* SECTION 3: SOCIAL MEDIA HANDLES */}
+                    <div className="pt-2 border-t border-border/50">
+                      <div className="text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-bold mb-3 flex items-center gap-1.5">
+                        <Globe className="h-3.5 w-3.5" />
+                        <span>Client Social Media Handles</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                            <span className="text-red-500 font-bold">YouTube</span> Handle or Link
+                          </label>
+                          <input
+                            name="social_youtube"
+                            type="text"
+                            defaultValue={editingClient?.socials?.youtube || ""}
+                            placeholder="@channel or full URL"
+                            className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                            <span className="text-pink-500 font-bold">Instagram</span> Handle or Link
+                          </label>
+                          <input
+                            name="social_instagram"
+                            type="text"
+                            defaultValue={editingClient?.socials?.instagram || ""}
+                            placeholder="@handle or full URL"
+                            className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                            <span className="text-cyan-400 font-bold">X (Twitter)</span> Handle or Link
+                          </label>
+                          <input
+                            name="social_twitter"
+                            type="text"
+                            defaultValue={editingClient?.socials?.twitter || ""}
+                            placeholder="@handle or full URL"
+                            className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                            <span className="text-cyan-400 font-bold">TikTok</span> Handle or Link
+                          </label>
+                          <input
+                            name="social_tiktok"
+                            type="text"
+                            defaultValue={editingClient?.socials?.tiktok || ""}
+                            placeholder="@handle or full URL"
+                            className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs font-mono text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                            <span className="text-white font-bold">Website / Channel</span> Portfolio Link
+                          </label>
+                          <input
+                            name="social_website"
+                            type="text"
+                            defaultValue={editingClient?.socials?.website || ""}
+                            placeholder="https://clientwebsite.com"
+                            className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-foreground text-xs font-mono focus:border-primary focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 4: STATUS & SUBMIT */}
+                    <div className="pt-4 border-t border-border flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Status:</label>
+                        <select
+                          name="status"
+                          defaultValue={editingClient?.status || "published"}
+                          className="bg-background border border-border rounded-xl px-4 py-2 text-foreground text-xs font-mono focus:border-primary focus:outline-none cursor-pointer"
+                        >
+                          <option value="published">Published (Visible on Portfolio)</option>
+                          <option value="draft">Draft (Hidden)</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowClientForm(false);
+                            setEditingClient(null);
+                          }}
+                          className="px-5 py-3 rounded-xl border border-border text-xs font-mono uppercase hover:bg-white/5 transition-colors"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="submit"
+                          disabled={isSaving}
+                          className="rounded-xl bg-primary px-8 py-3.5 font-display text-xs font-bold uppercase tracking-widest text-black shadow-[0_0_25px_rgba(255,26,26,0.4)] hover:bg-primary/90 transition-all flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {isSaving ? "SAVING..." : editingClient ? "UPDATE CLIENT" : "SAVE & PUBLISH CLIENT"}
+                          <CheckCircle2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* LIST OF PAST CLIENTS */}
+              {pastClients.length === 0 ? (
+                <div className="border border-dashed border-border/60 rounded-3xl p-16 text-center bg-card/20 flex flex-col items-center">
+                  <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                  <p className="text-muted-foreground font-mono">No past clients added yet.</p>
+                  <p className="text-muted-foreground/70 font-mono text-xs mt-1">Feature creator clients with their handles and video edits here.</p>
+                  <button
+                    onClick={() => {
+                      setShowClientForm(true);
+                      setEditingClient(null);
+                    }}
+                    className="mt-4 text-primary text-sm hover:underline font-bold"
+                  >
+                    Add your first past client →
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {pastClients.map((client) => {
+                    const yt = parseYouTubeUrl(client.embed_url || client.video_url);
+                    const thumb = client.thumbnail_url || yt.thumbnailUrl;
+
+                    return (
+                      <div
+                        key={client.id}
+                        className="group border border-border bg-card/40 rounded-2xl overflow-hidden hover:border-primary/50 transition-all flex flex-col justify-between"
+                      >
+                        <div>
+                          {/* Video Thumbnail */}
+                          <div className="aspect-video bg-black relative">
+                            {thumb ? (
+                              <img src={thumb} alt={client.video_title} className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                                <Play className="h-8 w-8 text-white/30" />
+                              </div>
+                            )}
+
+                            <div className="absolute top-3 left-3">
+                              <span
+                                className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md backdrop-blur-md ${
+                                  client.status === "published" ? "bg-primary text-black" : "bg-black/80 text-white border border-white/20"
+                                }`}
+                              >
+                                {client.status}
+                              </span>
+                            </div>
+
+                            {client.results_highlight && (
+                              <div className="absolute bottom-2.5 left-2.5 right-2.5">
+                                <span className="inline-block bg-black/85 border border-emerald-500/40 text-emerald-400 font-mono text-[9px] font-bold px-2 py-0.5 rounded truncate max-w-full">
+                                  {client.results_highlight}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Client Profile Details */}
+                          <div className="p-5">
+                            <div className="flex items-center gap-3 mb-3">
+                              {client.avatar_url ? (
+                                <img src={client.avatar_url} alt={client.client_name} className="h-10 w-10 rounded-xl object-cover border border-primary/40 shrink-0" />
+                              ) : (
+                                <div className="h-10 w-10 rounded-xl bg-primary/20 border border-primary/40 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                                  {client.client_name.slice(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <h3 className="font-bold text-foreground truncate text-sm">{client.client_name}</h3>
+                                {client.company_or_niche && (
+                                  <p className="text-[11px] font-mono text-muted-foreground truncate">{client.company_or_niche}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <p className="text-xs text-foreground/90 font-medium line-clamp-1 mb-3">
+                              🎬 {client.video_title}
+                            </p>
+
+                            {/* Social Handles Badges */}
+                            <div className="flex flex-wrap gap-1.5 pt-1 mb-3">
+                              {client.socials?.youtube && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+                                  YT: {client.socials.youtube.replace(/^https?:\/\/(www\.)?youtube\.com\//, "")}
+                                </span>
+                              )}
+                              {client.socials?.instagram && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-pink-500/10 text-pink-400 border border-pink-500/20">
+                                  IG: {client.socials.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//, "")}
+                                </span>
+                              )}
+                              {client.socials?.twitter && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-white border border-white/20">
+                                  X: {client.socials.twitter.replace(/^https?:\/\/(www\.)?x\.com\//, "")}
+                                </span>
+                              )}
+                              {client.socials?.tiktok && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                  TikTok: {client.socials.tiktok.replace(/^https?:\/\/(www\.)?tiktok\.com\//, "")}
+                                </span>
+                              )}
+                              {client.socials?.website && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                  Web
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons Toolbar */}
+                        <div className="p-5 pt-0 border-t border-border/40 mt-2 flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              const newStatus = toggleLocalPastClientStatus(client.id);
+                              setPastClients((prev) => prev.map((item) => (item.id === client.id ? { ...item, status: newStatus } : item)));
+                              toast.success(newStatus === "published" ? "Client profile published" : "Client profile hidden");
+                            }}
+                            className="flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-border hover:bg-white/5 transition-colors"
+                          >
+                            {client.status === "published" ? "Hide" : "Publish"}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setEditingClient(client);
+                              setShowClientForm(true);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
+                            title="Edit Client"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+
+                          <a
+                            href={client.video_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-cyan-400 hover:border-cyan-400/50 transition-colors"
+                            title="Watch Video Link"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete past client "${client.client_name}"?`)) {
+                                deleteLocalPastClient(client.id);
+                                setPastClients((prev) => prev.filter((item) => item.id !== client.id));
+                                toast.success("Past client deleted");
+                              }
+                            }}
+                            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-red-400 hover:border-red-400/50 transition-colors"
+                            title="Delete Client"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
