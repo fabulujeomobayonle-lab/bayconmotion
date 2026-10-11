@@ -68,7 +68,9 @@ function PortfolioPage() {
           .order("created_at", { ascending: false });
 
         if (!error && data && data.length > 0) {
-          const validData = data.filter(isValidWork);
+          const validData = data
+            .filter(isValidWork)
+            .filter((w: any) => !w.description?.startsWith("__PAST_CLIENT::"));
           if (validData.length > 0) {
             const remoteMapped: ProjectData[] = validData.map((w: any) => {
               const yt = parseYouTubeUrl(w.embed_url || w.video_url);
@@ -107,25 +109,50 @@ function PortfolioPage() {
     }
 
     async function loadPastClients() {
+      const PAST_CLIENT_PREFIX = "__PAST_CLIENT::";
+      function decodeWork(w: any): PastClient | null {
+        try {
+          if (!w.description || !w.description.startsWith(PAST_CLIENT_PREFIX)) return null;
+          const data = JSON.parse(w.description.slice(PAST_CLIENT_PREFIX.length));
+          return {
+            id: w.id,
+            client_name: data.client_name || w.title,
+            video_title: `${data.client_name || w.title}'s Video`,
+            video_url: data.video_url || w.video_url || w.embed_url || "",
+            video_urls: data.video_urls || (data.video_url ? [data.video_url] : []),
+            embed_url: w.embed_url || null,
+            thumbnail_url: w.thumbnail_url || null,
+            socials: data.socials || {},
+            status: (w.status === "published" ? "published" : "draft") as "published" | "draft",
+            sort_order: w.sort_order || 0,
+            created_at: w.created_at || new Date().toISOString(),
+          };
+        } catch {
+          return null;
+        }
+      }
+
+      // Show local immediately
       const localClients = getLocalPastClients().filter((c) => c.status === "published");
       setPastClients(localClients);
 
+      // Fetch from works table (no separate past_clients table needed)
       try {
-        const { data, error } = await supabase
-          .from("past_clients")
+        const { data } = await supabase
+          .from("works")
           .select("*")
           .eq("status", "published")
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: false });
 
-        if (!error && data && data.length > 0) {
-          setPastClients(data as PastClient[]);
-          try {
-            localStorage.setItem("baycon_past_clients_v2", JSON.stringify(data));
-          } catch {}
+        if (data && data.length > 0) {
+          const remoteClients = data.map(decodeWork).filter(Boolean) as PastClient[];
+          if (remoteClients.length > 0) {
+            setPastClients(remoteClients);
+          }
         }
       } catch (err) {
-        console.warn("Supabase past_clients load warning:", err);
+        console.warn("Supabase past_clients (works) load warning:", err);
       }
     }
 

@@ -443,202 +443,127 @@ export function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-export const INITIAL_PAST_CLIENTS: PastClient[] = [
-  {
-    id: "client-1",
-    client_name: "Alex Vance",
-    video_title: "Alex Vance Video",
-    video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    video_urls: [
-      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-    ],
-    embed_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    thumbnail_url: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&auto=format&fit=crop&q=80",
-    socials: {
-      youtube: "@alexvancefit",
-      instagram: "@alexvancefit",
-      twitter: "@alexvance",
-    },
-    status: "published",
-    sort_order: 1,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "client-2",
-    client_name: "Apex Kinetic",
-    video_title: "Apex Kinetic Video",
-    video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    video_urls: [
-      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    ],
-    embed_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    thumbnail_url: "https://images.unsplash.com/photo-1535016120720-40c646be5580?w=800&auto=format&fit=crop&q=80",
-    socials: {
-      youtube: "@apexkinetic",
-      twitter: "@apexkinetic",
-    },
-    status: "published",
-    sort_order: 2,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "client-3",
-    client_name: "Elena Rostova",
-    video_title: "Elena Rostova Video",
-    video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    video_urls: [
-      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    ],
-    embed_url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    thumbnail_url: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=800&auto=format&fit=crop&q=80",
-    socials: {
-      youtube: "@elenarostova",
-      instagram: "@elenarostova",
-      tiktok: "@elenarostova",
-    },
-    status: "published",
-    sort_order: 3,
-    created_at: new Date().toISOString(),
-  },
-];
+export const INITIAL_PAST_CLIENTS: PastClient[] = [];
 
-export function getLocalPastClients(): PastClient[] {
+// ─── PAST CLIENTS BACKED BY THE WORKS TABLE ───────────────────────────────
+// The past_clients table doesn't exist yet in Supabase, but the works table
+// is fully open with anon write access. We store past clients as works with:
+//   category = "General Editing"
+//   description = "__PAST_CLIENT::{json}"
+// This gives perfect cross-device sync without needing a new table.
+
+const PAST_CLIENT_PREFIX = "__PAST_CLIENT::";
+
+function encodePastClient(client: PastClient): string {
+  return PAST_CLIENT_PREFIX + JSON.stringify({
+    client_name: client.client_name,
+    socials: client.socials || {},
+    video_urls: client.video_urls || (client.video_url ? [client.video_url] : []),
+    video_url: client.video_url,
+  });
+}
+
+function decodePastClientWork(w: any): PastClient | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_PAST_CLIENTS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_PAST_CLIENTS, JSON.stringify(INITIAL_PAST_CLIENTS));
-      return INITIAL_PAST_CLIENTS;
-    }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
+    if (!w.description || !w.description.startsWith(PAST_CLIENT_PREFIX)) return null;
+    const data = JSON.parse(w.description.slice(PAST_CLIENT_PREFIX.length));
+    return {
+      id: w.id,
+      client_name: data.client_name || w.title,
+      video_title: `${data.client_name || w.title}'s Video`,
+      video_url: data.video_url || w.video_url || w.embed_url || "",
+      video_urls: data.video_urls || (data.video_url ? [data.video_url] : []),
+      embed_url: w.embed_url || null,
+      thumbnail_url: w.thumbnail_url || null,
+      socials: data.socials || {},
+      status: w.status === "published" ? "published" : "draft",
+      sort_order: w.sort_order || 0,
+      created_at: w.created_at || new Date().toISOString(),
+    };
   } catch {
-    return [];
+    return null;
   }
 }
 
-const toPastClientSupabasePayload = (c: PastClient) => ({
-  id: c.id,
-  client_name: c.client_name,
-  company_or_niche: c.company_or_niche || null,
-  avatar_url: c.avatar_url || null,
-  video_title: c.video_title || `${c.client_name}'s Video`,
-  video_url: c.video_url || (c.video_urls?.[0] || ""),
-  video_urls: c.video_urls || (c.video_url ? [c.video_url] : []),
-  embed_url: c.embed_url || null,
-  thumbnail_url: c.thumbnail_url || null,
-  results_highlight: c.results_highlight || null,
-  testimonial_quote: c.testimonial_quote || null,
-  socials: c.socials || {},
-  status: c.status || "published",
-  sort_order: c.sort_order || 0,
-  created_at: c.created_at || new Date().toISOString(),
-});
-
-export async function syncLocalPastClientsToSupabase(): Promise<void> {
+export function getLocalPastClients(): PastClient[] {
   try {
-    const local = getLocalPastClients();
-    for (const client of local) {
-      await supabase.from("past_clients").upsert(toPastClientSupabasePayload(client));
-    }
-  } catch (err) {
-    console.warn("syncLocalPastClientsToSupabase warning:", err);
+    // Pull from local works that are past clients
+    const works = getLocalWorks();
+    const fromWorks = works
+      .map(decodePastClientWork)
+      .filter(Boolean) as PastClient[];
+
+    // Also check legacy key
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_PAST_CLIENTS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          // Filter out demo/initial placeholder clients
+          const legacy = parsed.filter(
+            (c: any) => c.id && !c.id.startsWith("client-") && !fromWorks.find(w => w.id === c.id)
+          );
+          return [...fromWorks, ...legacy];
+        }
+      }
+    } catch {}
+
+    return fromWorks;
+  } catch {
+    return [];
   }
 }
 
 export function saveLocalPastClient(
   client: Omit<PastClient, "id" | "created_at" | "sort_order"> & { id?: string }
 ): PastClient {
-  const current = getLocalPastClients();
-  let updatedClient: PastClient;
+  const description = encodePastClient({
+    ...client,
+    id: client.id || "",
+    sort_order: 0,
+    created_at: new Date().toISOString(),
+  });
 
-  if (client.id) {
-    const existing = current.find((c) => c.id === client.id);
-    let finalId = client.id;
-    if (!isUuid(finalId) && !finalId.startsWith("client-")) {
-      finalId = generateId();
-    }
+  const primaryVideo = client.video_urls?.[0] || client.video_url || "";
 
-    updatedClient = {
-      ...(existing || {}),
-      ...client,
-      id: finalId,
-      created_at: existing?.created_at || new Date().toISOString(),
-      sort_order: existing?.sort_order || 1,
-    } as PastClient;
+  const workPayload = {
+    id: client.id,
+    title: client.client_name,
+    category: "General Editing" as const,
+    description,
+    status: client.status,
+    embed_url: client.embed_url || primaryVideo || null,
+    video_url: primaryVideo || null,
+    thumbnail_url: client.thumbnail_url || null,
+  };
 
-    const next = current.map((c) => (c.id === client.id ? updatedClient : c));
-    localStorage.setItem(STORAGE_KEY_PAST_CLIENTS, JSON.stringify(next));
+  const savedWork = saveLocalWork(workPayload);
 
-    (async () => {
-      try {
-        await supabase.from("past_clients").upsert(toPastClientSupabasePayload(updatedClient));
-      } catch (err) {
-        console.warn("Supabase past_clients sync warning:", err);
-      }
-    })();
-  } else {
-    updatedClient = {
-      ...client,
-      id: generateId(),
-      sort_order: current.length + 1,
-      created_at: new Date().toISOString(),
-    };
-    const next = [updatedClient, ...current];
-    localStorage.setItem(STORAGE_KEY_PAST_CLIENTS, JSON.stringify(next));
-
-    (async () => {
-      try {
-        await supabase.from("past_clients").upsert(toPastClientSupabasePayload(updatedClient));
-      } catch (err) {
-        console.warn("Supabase past_clients insert sync warning:", err);
-      }
-    })();
-  }
-
-  return updatedClient;
+  return {
+    id: savedWork.id,
+    client_name: client.client_name,
+    video_title: `${client.client_name}'s Video`,
+    video_url: primaryVideo,
+    video_urls: client.video_urls || (primaryVideo ? [primaryVideo] : []),
+    embed_url: client.embed_url || primaryVideo || null,
+    thumbnail_url: client.thumbnail_url || null,
+    socials: client.socials || {},
+    status: client.status,
+    sort_order: savedWork.sort_order,
+    created_at: savedWork.created_at,
+  };
 }
 
 export function deleteLocalPastClient(id: string): void {
-  const current = getLocalPastClients();
-  const next = current.filter((c) => c.id !== id);
-  localStorage.setItem(STORAGE_KEY_PAST_CLIENTS, JSON.stringify(next));
-
-  (async () => {
-    try {
-      await supabase.from("past_clients").delete().eq("id", id);
-    } catch (err) {
-      console.warn("Supabase past_clients delete sync warning:", err);
-    }
-  })();
+  deleteLocalWork(id);
 }
 
 export function toggleLocalPastClientStatus(id: string): "published" | "draft" {
-  const current = getLocalPastClients();
-  let newStatus: "published" | "draft" = "draft";
-  let targetClient: PastClient | undefined;
+  return toggleLocalWorkStatus(id) as "published" | "draft";
+}
 
-  const next = current.map((c) => {
-    if (c.id === id) {
-      newStatus = c.status === "published" ? "draft" : "published";
-      targetClient = { ...c, status: newStatus };
-      return targetClient;
-    }
-    return c;
-  });
-
-  localStorage.setItem(STORAGE_KEY_PAST_CLIENTS, JSON.stringify(next));
-
-  (async () => {
-    try {
-      await supabase.from("past_clients").update({ status: newStatus }).eq("id", id);
-    } catch (err) {
-      console.warn("Supabase past_clients toggle status sync warning:", err);
-    }
-  })();
-
-  return newStatus;
+export async function syncLocalPastClientsToSupabase(): Promise<void> {
+  // No-op: past clients are now works, they sync automatically via saveLocalWork
 }
 
 

@@ -33,22 +33,45 @@ function HomePage() {
   const [pastClients, setPastClients] = useState<PastClient[]>([]);
 
   useEffect(() => {
+    const PAST_CLIENT_PREFIX = "__PAST_CLIENT::";
+    function decodeWork(w: any): PastClient | null {
+      try {
+        if (!w.description || !w.description.startsWith(PAST_CLIENT_PREFIX)) return null;
+        const data = JSON.parse(w.description.slice(PAST_CLIENT_PREFIX.length));
+        return {
+          id: w.id,
+          client_name: data.client_name || w.title,
+          video_title: `${data.client_name || w.title}'s Video`,
+          video_url: data.video_url || w.video_url || w.embed_url || "",
+          video_urls: data.video_urls || (data.video_url ? [data.video_url] : []),
+          embed_url: w.embed_url || null,
+          thumbnail_url: w.thumbnail_url || null,
+          socials: data.socials || {},
+          status: (w.status === "published" ? "published" : "draft") as "published" | "draft",
+          sort_order: w.sort_order || 0,
+          created_at: w.created_at || new Date().toISOString(),
+        };
+      } catch {
+        return null;
+      }
+    }
+
     const local = getLocalPastClients().filter((c) => c.status === "published");
     setPastClients(local);
 
     (async () => {
       try {
         const { data } = await supabase
-          .from("past_clients")
+          .from("works")
           .select("*")
           .eq("status", "published")
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: false });
         if (data && data.length > 0) {
-          setPastClients(data as PastClient[]);
-          try {
-            localStorage.setItem("baycon_past_clients_v2", JSON.stringify(data));
-          } catch {}
+          const remoteClients = data.map(decodeWork).filter(Boolean) as PastClient[];
+          if (remoteClients.length > 0) {
+            setPastClients(remoteClients);
+          }
         }
       } catch {}
     })();

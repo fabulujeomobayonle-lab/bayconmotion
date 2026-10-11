@@ -82,68 +82,63 @@ function AdminPage() {
   }, []);
 
   async function loadPastClients() {
-    const local = getLocalPastClients();
-    setPastClients(local);
+    // Past clients are stored as works with description starting with __PAST_CLIENT::
+    // This bypasses the missing past_clients table and uses the existing works table
+    const PAST_CLIENT_PREFIX = "__PAST_CLIENT::";
+
+    function decodeWork(w: any): PastClient | null {
+      try {
+        if (!w.description || !w.description.startsWith(PAST_CLIENT_PREFIX)) return null;
+        const data = JSON.parse(w.description.slice(PAST_CLIENT_PREFIX.length));
+        return {
+          id: w.id,
+          client_name: data.client_name || w.title,
+          video_title: `${data.client_name || w.title}'s Video`,
+          video_url: data.video_url || w.video_url || w.embed_url || "",
+          video_urls: data.video_urls || (data.video_url ? [data.video_url] : []),
+          embed_url: w.embed_url || null,
+          thumbnail_url: w.thumbnail_url || null,
+          socials: data.socials || {},
+          status: w.status === "published" ? "published" : "draft",
+          sort_order: w.sort_order || 0,
+          created_at: w.created_at || new Date().toISOString(),
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    // First set from local works immediately
+    const localClients = getLocalPastClients();
+    setPastClients(localClients);
+
+    // Then fetch from Supabase works table
     try {
-      const { data, error } = await supabase
-        .from("past_clients")
+      const { data } = await supabase
+        .from("works")
         .select("*")
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
-
-      if (!error && data !== null) {
-        if (data.length > 0) {
-          // Check if local has clients not yet on Supabase (e.g. created before SQL was run)
-          const remoteIds = new Set(data.map((d: any) => d.id));
-          const unsynced = local.filter((l) => !remoteIds.has(l.id) && !l.id.startsWith("client-"));
-          if (unsynced.length > 0) {
-            for (const item of unsynced) {
-              await supabase.from("past_clients").upsert(item);
-            }
-            const { data: refetched } = await supabase
-              .from("past_clients")
-              .select("*")
-              .order("sort_order", { ascending: true })
-              .order("created_at", { ascending: false });
-            if (refetched && refetched.length > 0) {
-              setPastClients(refetched as PastClient[]);
-              localStorage.setItem("baycon_past_clients_v2", JSON.stringify(refetched));
-              return;
-            }
-          }
-
-          setPastClients(data as PastClient[]);
-          localStorage.setItem("baycon_past_clients_v2", JSON.stringify(data));
-        } else if (local.length > 0) {
-          // Supabase is empty, sync local custom clients
-          const custom = local.filter((l) => !l.id.startsWith("client-"));
-          const toPush = custom.length > 0 ? custom : local;
-          for (const item of toPush) {
-            await supabase.from("past_clients").upsert(item);
-          }
-          const { data: refetched } = await supabase
-            .from("past_clients")
-            .select("*")
-            .order("sort_order", { ascending: true })
-            .order("created_at", { ascending: false });
-          if (refetched && refetched.length > 0) {
-            setPastClients(refetched as PastClient[]);
-            localStorage.setItem("baycon_past_clients_v2", JSON.stringify(refetched));
-          }
+      if (data && data.length > 0) {
+        const remoteClients = data.map(decodeWork).filter(Boolean) as PastClient[];
+        if (remoteClients.length > 0) {
+          setPastClients(remoteClients);
         }
       }
     } catch (err) {
-      console.warn("Supabase loadPastClients error:", err);
+      console.warn("Supabase loadPastClients (from works) error:", err);
     }
   }
 
+
   async function loadWorks() {
-    const local = getLocalWorks().filter(isValidWork);
+    const isPastClient = (w: any) => typeof w?.description === "string" && w.description.startsWith("__PAST_CLIENT::");
+    const local = getLocalWorks().filter(isValidWork).filter(w => !isPastClient(w));
     setWorks(local);
     try {
       const { data } = await supabase.from("works").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
       if (data && data.length > 0) {
-        const remoteFiltered = data.filter(isValidWork);
+        const remoteFiltered = data.filter(isValidWork).filter((w: any) => !isPastClient(w));
         const localMap = new Map(local.map((l) => [l.id, l]));
         const mergedRemote = remoteFiltered.map((remote: any) => {
           const localItem = localMap.get(remote.id);
