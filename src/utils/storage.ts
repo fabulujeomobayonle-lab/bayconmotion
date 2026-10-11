@@ -213,15 +213,10 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
     // Sync to Supabase
     (async () => {
       try {
-        const supabaseWork = { ...updatedWork };
-        if (supabaseWork.category === "Business Edit" || supabaseWork.category === "Random Edit") {
-          supabaseWork.category = "General Editing";
-        }
-
         if (isUuid(work.id)) {
-          await supabase.from("works").update(supabaseWork).eq("id", work.id);
+          await supabase.from("works").update(updatedWork).eq("id", work.id);
         } else {
-          await supabase.from("works").upsert(supabaseWork);
+          await supabase.from("works").upsert(updatedWork);
         }
       } catch (err) {
         console.warn("Supabase work update sync warning:", err);
@@ -239,11 +234,7 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
 
     (async () => {
       try {
-        const supabaseWork = { ...updatedWork };
-        if (supabaseWork.category === "Business Edit" || supabaseWork.category === "Random Edit") {
-          supabaseWork.category = "General Editing";
-        }
-        await supabase.from("works").insert(supabaseWork);
+        await supabase.from("works").insert(updatedWork);
       } catch (err) {
         console.warn("Supabase work insert sync warning:", err);
       }
@@ -295,15 +286,9 @@ export function toggleLocalWorkStatus(id: string): "published" | "draft" {
         // Upgrade demo work to UUID and upsert so database recognizes it
         const newUuid = generateId();
         const upgraded = { ...targetWork, id: newUuid };
-        
-        const supabaseWork = { ...upgraded };
-        if (supabaseWork.category === "Business Edit" || supabaseWork.category === "Random Edit") {
-          supabaseWork.category = "General Editing";
-        }
-
         const updatedList = getLocalWorks().map((w) => (w.id === id ? upgraded : w));
         localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(updatedList));
-        await supabase.from("works").upsert(supabaseWork);
+        await supabase.from("works").upsert(upgraded);
       }
     } catch (err) {
       console.warn("Supabase toggle status sync warning:", err);

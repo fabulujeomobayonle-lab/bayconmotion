@@ -137,19 +137,42 @@ function AdminPage() {
     setWorks(local);
     try {
       const { data } = await supabase.from("works").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
-      if (data && data.length > 0) {
-        const remoteFiltered = data.filter(isValidWork).filter((w: any) => !isPastClient(w));
+      if (data !== null) {
+        const remoteFiltered = (data || []).filter(isValidWork).filter((w: any) => !isPastClient(w));
+        const remoteIds = new Set(remoteFiltered.map((d: any) => d.id));
+
+        // Auto-sync: push any local works that are missing from Supabase (e.g. saved when insert was failing)
+        const unsynced = local.filter((l) => !remoteIds.has(l.id));
+        if (unsynced.length > 0) {
+          for (const item of unsynced) {
+            await supabase.from("works").upsert(item);
+          }
+          // Re-fetch after sync
+          const { data: refetched } = await supabase.from("works").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
+          if (refetched) {
+            const rf = refetched.filter(isValidWork).filter((w: any) => !isPastClient(w));
+            const localMap2 = new Map(local.map((l) => [l.id, l]));
+            const merged2 = rf.map((remote: any) => {
+              const li = localMap2.get(remote.id);
+              return li ? { ...remote, status: li.status } : remote;
+            });
+            const rfIds = new Set(rf.map((d: any) => d.id));
+            setWorks([...local.filter(l => !rfIds.has(l.id)), ...merged2]);
+          }
+          return;
+        }
+
         const localMap = new Map(local.map((l) => [l.id, l]));
         const mergedRemote = remoteFiltered.map((remote: any) => {
           const localItem = localMap.get(remote.id);
           return localItem ? { ...remote, status: localItem.status } : remote;
         });
-        const remoteIds = new Set(remoteFiltered.map((d: any) => d.id));
         const unmergedLocal = local.filter((l) => !remoteIds.has(l.id));
         setWorks([...unmergedLocal, ...mergedRemote]);
       }
     } catch {}
   }
+
 
   async function loadReviews() {
     const local = getLocalReviews();
