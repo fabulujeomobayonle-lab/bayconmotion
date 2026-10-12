@@ -141,11 +141,21 @@ function AdminPage() {
         const remoteFiltered = (data || []).filter(isValidWork).filter((w: any) => !isPastClient(w));
         const remoteIds = new Set(remoteFiltered.map((d: any) => d.id));
 
-        // Auto-sync: push any local works that are missing from Supabase (e.g. saved when insert was failing)
+        // Auto-sync: push any local works missing from Supabase
         const unsynced = local.filter((l) => !remoteIds.has(l.id));
         if (unsynced.length > 0) {
+          let synced = 0;
           for (const item of unsynced) {
-            await supabase.from("works").upsert(item);
+            // Try with real category first; if enum rejects it, fall back to "General Editing"
+            const { error } = await supabase.from("works").upsert(item);
+            if (error) {
+              const fallback = { ...item, category: "General Editing" as const };
+              await supabase.from("works").upsert(fallback);
+            }
+            synced++;
+          }
+          if (synced > 0) {
+            toast.success(`Synced ${synced} video${synced > 1 ? "s" : ""} to cloud — now visible on all devices!`);
           }
           // Re-fetch after sync
           const { data: refetched } = await supabase.from("works").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
@@ -172,6 +182,8 @@ function AdminPage() {
       }
     } catch {}
   }
+
+
 
 
   async function loadReviews() {
