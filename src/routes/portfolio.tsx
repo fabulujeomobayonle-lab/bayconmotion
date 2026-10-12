@@ -35,28 +35,33 @@ function PortfolioPage() {
 
   useEffect(() => {
     async function loadWorks() {
-      const localWorks = getLocalWorks().filter(isValidWork).filter((w) => w.status === "published");
-      if (localWorks.length > 0) {
-        const localMapped: ProjectData[] = localWorks.map((w) => {
-          const yt = parseYouTubeUrl(w.embed_url || w.video_url);
-          return {
-            id: w.id,
-            title: w.title,
-            category: w.category || "General Editing",
-            description: w.description || "",
-            embedUrl: w.embed_url,
-            videoUrl: w.video_url,
-            thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
-            views: "Featured Work",
-            retention: "High Retention",
-            cuts: "Fast Paced",
-            colorLut: "Custom LUT",
-            techniques: ["Motion FX", "Color Grading", "Audio Sync"],
-          };
-        });
-        setDbProjects(localMapped);
-      } else {
-        setDbProjects([]);
+      const isPastClient = (w: any) => typeof w?.description === "string" && w.description.startsWith("__PAST_CLIENT::");
+
+      const toProjectData = (w: any): ProjectData => {
+        const yt = parseYouTubeUrl(w.embed_url || w.video_url);
+        return {
+          id: w.id,
+          title: w.title,
+          category: w.category || "General Editing",
+          description: w.description || "",
+          embedUrl: w.embed_url,
+          videoUrl: w.video_url,
+          thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
+          views: "Featured Work",
+          retention: "High Retention",
+          cuts: "Fast Paced",
+          colorLut: "Custom LUT",
+          techniques: ["Motion FX", "Color Grading", "Audio Sync"],
+        };
+      };
+
+      // Show local works immediately
+      const localPublished = getLocalWorks()
+        .filter(isValidWork)
+        .filter((w) => !isPastClient(w))
+        .filter((w) => w.status === "published");
+      if (localPublished.length > 0) {
+        setDbProjects(localPublished.map(toProjectData));
       }
 
       try {
@@ -67,40 +72,44 @@ function PortfolioPage() {
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: false });
 
-        if (!error && data && data.length > 0) {
-          const validData = data
+        if (!error && data !== null) {
+          const remoteFiltered = data
             .filter(isValidWork)
-            .filter((w: any) => !w.description?.startsWith("__PAST_CLIENT::"));
-          if (validData.length > 0) {
-            const remoteMapped: ProjectData[] = validData.map((w: any) => {
-              const yt = parseYouTubeUrl(w.embed_url || w.video_url);
-              return {
-                id: w.id,
-                title: w.title,
-                category: w.category || "General Editing",
-                description: w.description || "",
-                embedUrl: w.embed_url,
-                videoUrl: w.video_url,
-                thumbnailUrl: w.thumbnail_url || yt.thumbnailUrl,
-                views: "Featured Work",
-                retention: "High Retention",
-                cuts: "Fast Paced",
-                colorLut: "Custom LUT",
-                techniques: ["Motion FX", "Color Grading", "Audio Sync"],
-              };
-            });
+            .filter((w: any) => !isPastClient(w));
+          const remoteIds = new Set(remoteFiltered.map((d: any) => d.id));
 
-            setDbProjects((prev) => {
-              const allLocal = getLocalWorks();
+          // AUTO-SYNC: local works not in Supabase → push them now
+          const allLocal = getLocalWorks().filter(isValidWork).filter((w) => !isPastClient(w));
+          const unsynced = allLocal.filter((l) => !remoteIds.has(l.id));
+          if (unsynced.length > 0) {
+            for (const item of unsynced) {
+              const { error: e } = await supabase.from("works").upsert(item);
+              if (e) {
+                await supabase.from("works").upsert({ ...item, category: "General Editing" });
+              }
+            }
+            // Re-fetch so the updated list shows
+            const { data: fresh } = await supabase
+              .from("works")
+              .select("*")
+              .eq("status", "published")
+              .order("sort_order", { ascending: true })
+              .order("created_at", { ascending: false });
+            if (fresh) {
               const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
-              const validRemote = remoteMapped.filter((w) => !draftIds.has(w.id));
-              const map = new Map();
-              [...validRemote, ...prev].forEach((item) => map.set(item.id || item.title, item));
-              return Array.from(map.values()).filter((item) => {
-                const localMatch = allLocal.find((l) => l.id === item.id);
-                return localMatch ? localMatch.status === "published" : true;
-              });
-            });
+              const valid = fresh
+                .filter(isValidWork)
+                .filter((w: any) => !isPastClient(w))
+                .filter((w: any) => !draftIds.has(w.id));
+              if (valid.length > 0) setDbProjects(valid.map(toProjectData));
+            }
+            return;
+          }
+
+          if (remoteFiltered.length > 0) {
+            const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
+            const valid = remoteFiltered.filter((w: any) => !draftIds.has(w.id));
+            if (valid.length > 0) setDbProjects(valid.map(toProjectData));
           }
         }
       } catch (err) {
