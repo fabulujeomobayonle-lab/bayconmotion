@@ -75,12 +75,34 @@ export type PastClient = {
   created_at: string;
 };
 
-const INITIAL_WORKS: Work[] = [];
+export const INITIAL_WORKS: Work[] = [
+  {
+    id: "ef2cd025-d964-489c-8e6b-bf0b39f724e6",
+    title: "turning raw footage to a viral talking head",
+    category: "Talking Head",
+    description: "Turning raw talking head footage into an engaging, fast-paced experience 🔥\nAdded smooth cuts, captions, sound design, zooms, and visual effects to improve retention.",
+    status: "published",
+    embed_url: "https://www.youtube.com/shorts/7ecfQbWEiIU?feature=share",
+    video_url: null,
+    thumbnail_url: "https://messtlmcuoowaxfbntkl.supabase.co/storage/v1/object/sign/works-thumbnails/8412e8f2-2723-41a0-9d50-d4284d7d4cd0.jpeg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85MzUzNzRlZS04MzU1LTQ4NDQtOTA4MC00M2I0Nzg4NTJkYjkiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ3b3Jrcy10aHVtYm5haWxzLzg0MTJlOGYyLTI3MjMtNDFhMC05ZDUwLWQ0Mjg0ZDdkNGNkMC5qcGVnIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4MTUyNTYyOCwiZXhwIjozMzU4MzI1NjI4fQ.moelUds4-X4FQ9v0Xp6BxOx2IY0dafAGLXUQdI7OvP8",
+    sort_order: 1,
+    created_at: "2026-06-15T12:13:49.407Z",
+  },
+  {
+    id: "c6d6ecfb-42ae-4905-a8a2-c6df14c6940c",
+    title: "High-Retention YouTube Edit",
+    category: "Talking Head",
+    description: "A high-energy creator edit inspired by the fast-paced style of modern YouTube content. This project focuses on audience retention through dynamic pacing, engaging cuts, sound design, motion effects, and seamless transitions.\n\nThe goal was to transform raw footage into an entertaining viewing experience while maintaining the creator's personality and energy.\n\nEdited with DaVinci Resolve.",
+    status: "published",
+    embed_url: "https://youtube.com/shorts/HOfw5dRqRPw?feature=share",
+    video_url: null,
+    thumbnail_url: "https://messtlmcuoowaxfbntkl.supabase.co/storage/v1/object/sign/works-thumbnails/e2daffe4-ba65-4c54-9f86-452997127450.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85MzUzNzRlZS04MzU1LTQ4NDQtOTA4MC00M2I0Nzg4NTJkYjkiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ3b3Jrcy10aHVtYm5haWxzL2UyZGFmZmU0LWJhNjUtNGM1NC05Zjg2LTQ1Mjk5NzEyNzQ1MC5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzgyMjM1MzE0LCJleHAiOjMzNTkwMzUzMTR9.Kl6naU50dIyzkrgCqpCpsHcx-KOTckrChQxPy8ztXWM",
+    sort_order: 2,
+    created_at: "2026-06-23T17:21:55.632Z",
+  },
+];
 
-export const BANNED_WORK_IDS = new Set([
-  "ef2cd025-d964-489c-8e6b-bf0b39f724e6",
-  "c6d6ecfb-42ae-4905-a8a2-c6df14c6940c",
-]);
+export const BANNED_WORK_IDS = new Set<string>([]);
 
 const STORAGE_KEY_WORKS = "baycon_works_v2";
 const STORAGE_KEY_REVIEWS = "baycon_reviews_v2";
@@ -94,7 +116,11 @@ export function getDeletedWorkIds(): Set<string> {
     const raw = localStorage.getItem(STORAGE_KEY_DELETED);
     if (!raw) return new Set();
     const arr = JSON.parse(raw);
-    return new Set(Array.isArray(arr) ? arr : []);
+    const set = new Set(Array.isArray(arr) ? arr : []);
+    // Ensure real videos are never blocked by stale deleted list
+    set.delete("ef2cd025-d964-489c-8e6b-bf0b39f724e6");
+    set.delete("c6d6ecfb-42ae-4905-a8a2-c6df14c6940c");
+    return set;
   } catch {
     return new Set();
   }
@@ -116,20 +142,12 @@ export function isValidWork(w: any): boolean {
   if (BANNED_WORK_IDS.has(w.id)) return false;
   if (getDeletedWorkIds().has(w.id)) return false;
 
-  // Filter out the 2 stale initial featured edits by title as well
+  // Filter out placeholder mock template items only
   const lowerTitle = (w.title || "").toLowerCase().trim();
   if (
-    lowerTitle.includes("turning raw footage") ||
-    lowerTitle.includes("high-retention youtube edit") ||
     lowerTitle.includes("luxury brand launch ad") ||
     lowerTitle.includes("fintech app 3d explainer")
   ) {
-    return false;
-  }
-  
-  // Filter out by specific hardcoded youtube IDs to be absolutely sure
-  const url = (w.embed_url || w.video_url || "").toLowerCase();
-  if (url.includes("7ecfqbweiiu") || url.includes("hofw5drqrpw")) {
     return false;
   }
 
@@ -141,6 +159,19 @@ try {
     localStorage.removeItem("baycon_works");
     localStorage.removeItem("baycon_works_v1");
     localStorage.removeItem("baycon_demo_works");
+    // Clean up deleted list if it contained the real user video IDs
+    const deletedRaw = localStorage.getItem(STORAGE_KEY_DELETED);
+    if (deletedRaw) {
+      try {
+        const deletedArr = JSON.parse(deletedRaw);
+        if (Array.isArray(deletedArr)) {
+          const filtered = deletedArr.filter(
+            (id: string) => id !== "ef2cd025-d964-489c-8e6b-bf0b39f724e6" && id !== "c6d6ecfb-42ae-4905-a8a2-c6df14c6940c"
+          );
+          localStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(filtered));
+        }
+      } catch {}
+    }
   }
 } catch {}
 
@@ -154,20 +185,28 @@ export function getLocalWorks(): Work[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_WORKS);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify([]));
-      return [];
+      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(INITIAL_WORKS));
+      return INITIAL_WORKS;
     }
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(INITIAL_WORKS));
+      return INITIAL_WORKS;
+    }
 
     // Filter out obsolete legacy items and demo items
     const cleaned = parsed.filter(isValidWork);
+    // If all items were filtered out (due to previous bug), restore initial works
+    if (cleaned.length === 0 && INITIAL_WORKS.length > 0) {
+      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(INITIAL_WORKS));
+      return INITIAL_WORKS;
+    }
     if (cleaned.length !== parsed.length) {
       localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(cleaned));
     }
     return cleaned;
   } catch {
-    return [];
+    return INITIAL_WORKS;
   }
 }
 
