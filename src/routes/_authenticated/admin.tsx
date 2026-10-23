@@ -463,11 +463,15 @@ function AdminPage() {
                             {w.status === 'published' ? 'Hide' : 'Publish'}
                           </button>
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               if (confirm("Delete this video?")) {
-                                deleteLocalWork(w.id);
+                                const res = await deleteLocalWork(w.id);
                                 setWorks(prev => prev.filter(item => item.id !== w.id));
-                                toast.success("Video deleted");
+                                if (res.error) {
+                                  toast.warning("Video removed from portfolio! Cloud delete was blocked by Supabase RLS policy.");
+                                } else {
+                                  toast.success("Video permanently deleted!");
+                                }
                               }
                             }}
                             className="p-2 rounded-lg border border-border text-muted-foreground hover:text-red-400 hover:border-red-400/50 transition-colors"
@@ -829,11 +833,15 @@ function AdminPage() {
                           </a>
 
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               if (confirm(`Delete past client "${client.client_name}"?`)) {
-                                deleteLocalPastClient(client.id);
+                                const res = await deleteLocalPastClient(client.id);
                                 setPastClients((prev) => prev.filter((item) => item.id !== client.id));
-                                toast.success("Past client deleted");
+                                if (res.error) {
+                                  toast.warning("Past client removed locally! Note: Cloud delete was blocked by Supabase RLS.");
+                                } else {
+                                  toast.success("Past client deleted");
+                                }
                               }
                             }}
                             className="p-2 rounded-lg border border-border text-muted-foreground hover:text-red-400 hover:border-red-400/50 transition-colors"

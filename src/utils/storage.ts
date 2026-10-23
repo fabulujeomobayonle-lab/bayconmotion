@@ -116,11 +116,7 @@ export function getDeletedWorkIds(): Set<string> {
     const raw = localStorage.getItem(STORAGE_KEY_DELETED);
     if (!raw) return new Set();
     const arr = JSON.parse(raw);
-    const set = new Set(Array.isArray(arr) ? arr : []);
-    // Ensure real videos are never blocked by stale deleted list
-    set.delete("ef2cd025-d964-489c-8e6b-bf0b39f724e6");
-    set.delete("c6d6ecfb-42ae-4905-a8a2-c6df14c6940c");
-    return set;
+    return new Set(Array.isArray(arr) ? arr : []);
   } catch {
     return new Set();
   }
@@ -128,7 +124,7 @@ export function getDeletedWorkIds(): Set<string> {
 
 export function addDeletedWorkId(id: string): void {
   try {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !id) return;
     const set = getDeletedWorkIds();
     set.add(id);
     localStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(Array.from(set)));
@@ -181,32 +177,36 @@ export function isUuid(id: string | null | undefined): boolean {
   return UUID_REGEX.test(id);
 }
 
+const STORAGE_KEY_SEEDED = "baycon_seeded_v3";
+
 export function getLocalWorks(): Work[] {
   try {
+    if (typeof window === "undefined") return INITIAL_WORKS;
+    const isSeeded = localStorage.getItem(STORAGE_KEY_SEEDED);
     const raw = localStorage.getItem(STORAGE_KEY_WORKS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(INITIAL_WORKS));
-      return INITIAL_WORKS;
-    }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(INITIAL_WORKS));
-      return INITIAL_WORKS;
+
+    if (!isSeeded) {
+      localStorage.setItem(STORAGE_KEY_SEEDED, "true");
+      // Seed initial works only once if empty
+      if (!raw || raw === "[]") {
+        localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(INITIAL_WORKS));
+        return INITIAL_WORKS;
+      }
     }
 
-    // Filter out obsolete legacy items and demo items
-    const cleaned = parsed.filter(isValidWork);
-    // If all items were filtered out (due to previous bug), restore initial works
-    if (cleaned.length === 0 && INITIAL_WORKS.length > 0) {
-      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(INITIAL_WORKS));
-      return INITIAL_WORKS;
-    }
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    const deletedIds = getDeletedWorkIds();
+    // Filter out obsolete legacy items, demo items, and deleted items
+    const cleaned = parsed.filter(isValidWork).filter((w) => !deletedIds.has(w.id));
     if (cleaned.length !== parsed.length) {
       localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(cleaned));
     }
     return cleaned;
   } catch {
-    return INITIAL_WORKS;
+    return [];
   }
 }
 
@@ -230,6 +230,12 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
   let updatedWork: Work;
 
   if (work.id) {
+    const deleted = getDeletedWorkIds();
+    if (deleted.has(work.id)) {
+      deleted.delete(work.id);
+      localStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(Array.from(deleted)));
+    }
+
     const existing = current.find((w) => w.id === work.id);
     let finalId = work.id;
 
@@ -283,21 +289,29 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
   return updatedWork;
 }
 
-export function deleteLocalWork(id: string): void {
+export async function deleteLocalWork(id: string): Promise<{ success: boolean; error?: any }> {
   addDeletedWorkId(id);
   const current = getLocalWorks();
   const next = current.filter((w) => w.id !== id);
   localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(next));
 
-  (async () => {
-    try {
-      if (isUuid(id)) {
-        await supabase.from("works").delete().eq("id", id);
-      }
-    } catch (err) {
-      console.warn("Supabase work delete sync warning:", err);
+  if (!isUuid(id)) {
+    return { success: true };
+  }
+
+  try {
+    const { error: delError } = await supabase.from("works").delete().eq("id", id);
+    if (delError) {
+      console.warn("Supabase work delete sync error (likely RLS policy):", delError);
+      // Attempt fallback to draft
+      await supabase.from("works").update({ status: "draft" }).eq("id", id);
+      return { success: false, error: delError };
     }
-  })();
+    return { success: true };
+  } catch (err) {
+    console.warn("Supabase work delete sync exception:", err);
+    return { success: false, error: err };
+  }
 }
 
 export function toggleLocalWorkStatus(id: string): "published" | "draft" {
@@ -578,8 +592,8 @@ export function saveLocalPastClient(
   };
 }
 
-export function deleteLocalPastClient(id: string): void {
-  deleteLocalWork(id);
+export async function deleteLocalPastClient(id: string): Promise<{ success: boolean; error?: any }> {
+  return await deleteLocalWork(id);
 }
 
 export function toggleLocalPastClientStatus(id: string): "published" | "draft" {

@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { Film, Play, Users } from "lucide-react";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
 import { parseYouTubeUrl } from "@/utils/video";
-import { getLocalWorks, isValidWork, getLocalPastClients, type PastClient } from "@/utils/storage";
+import { getLocalWorks, isValidWork, getDeletedWorkIds, getLocalPastClients, type PastClient } from "@/utils/storage";
 
 const supabase = supabaseTyped as unknown as {
   from: (table: string) => any;
@@ -55,10 +55,13 @@ function PortfolioPage() {
         };
       };
 
+      const deletedIds = getDeletedWorkIds();
+
       // Show local works immediately
       const localPublished = getLocalWorks()
         .filter(isValidWork)
         .filter((w) => !isPastClient(w))
+        .filter((w) => !deletedIds.has(w.id))
         .filter((w) => w.status === "published");
       if (localPublished.length > 0) {
         setDbProjects(localPublished.map(toProjectData));
@@ -75,11 +78,12 @@ function PortfolioPage() {
         if (!error && data !== null) {
           const remoteFiltered = data
             .filter(isValidWork)
-            .filter((w: any) => !isPastClient(w));
+            .filter((w: any) => !isPastClient(w))
+            .filter((w: any) => !deletedIds.has(w.id));
           const remoteIds = new Set(remoteFiltered.map((d: any) => d.id));
 
           // AUTO-SYNC: local works not in Supabase → push them now
-          const allLocal = getLocalWorks().filter(isValidWork).filter((w) => !isPastClient(w));
+          const allLocal = getLocalWorks().filter(isValidWork).filter((w) => !isPastClient(w)).filter((w) => !deletedIds.has(w.id));
           const unsynced = allLocal.filter((l) => !remoteIds.has(l.id));
           if (unsynced.length > 0) {
             for (const item of unsynced) {
@@ -100,16 +104,21 @@ function PortfolioPage() {
               const valid = fresh
                 .filter(isValidWork)
                 .filter((w: any) => !isPastClient(w))
-                .filter((w: any) => !draftIds.has(w.id));
-              if (valid.length > 0) setDbProjects(valid.map(toProjectData));
+                .filter((w: any) => !draftIds.has(w.id))
+                .filter((w: any) => !deletedIds.has(w.id));
+              setDbProjects(valid.map(toProjectData));
             }
             return;
           }
 
           if (remoteFiltered.length > 0) {
             const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
-            const valid = remoteFiltered.filter((w: any) => !draftIds.has(w.id));
-            if (valid.length > 0) setDbProjects(valid.map(toProjectData));
+            const valid = remoteFiltered
+              .filter((w: any) => !draftIds.has(w.id))
+              .filter((w: any) => !deletedIds.has(w.id));
+            setDbProjects(valid.map(toProjectData));
+          } else {
+            setDbProjects(localPublished.map(toProjectData));
           }
         }
       } catch (err) {
