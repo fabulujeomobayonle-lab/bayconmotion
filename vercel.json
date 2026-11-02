@@ -1,4 +1,5 @@
 {
+  "installCommand": "npm install --legacy-peer-deps",
   "env": {
     "DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_SERVER_CORE": "true"
   },
