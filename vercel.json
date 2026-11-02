@@ -1,8 +1,5 @@
 {
-  "framework": "tanstack-start",
   "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "npm run build",
-  "outputDirectory": ".output/public",
   "env": {
     "DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_SERVER_CORE": "true"
   },
