@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { Film, Play, Users } from "lucide-react";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
 import { parseYouTubeUrl } from "@/utils/video";
-import { getLocalWorks, isValidWork, getDeletedWorkIds, getLocalPastClients, type PastClient } from "@/utils/storage";
+import { getLocalWorks, isValidWork, getDeletedWorkIds, getLocalPastClients, decodePastClientWork, type PastClient } from "@/utils/storage";
 
 const supabase = supabaseTyped as unknown as {
   from: (table: string) => any;
@@ -57,16 +57,6 @@ function PortfolioPage() {
 
       const deletedIds = getDeletedWorkIds();
 
-      // Show local works immediately
-      const localPublished = getLocalWorks()
-        .filter(isValidWork)
-        .filter((w) => !isPastClient(w))
-        .filter((w) => !deletedIds.has(w.id))
-        .filter((w) => w.status === "published");
-      if (localPublished.length > 0) {
-        setDbProjects(localPublished.map(toProjectData));
-      }
-
       try {
         const { data, error } = await supabase
           .from("works")
@@ -76,85 +66,32 @@ function PortfolioPage() {
           .order("created_at", { ascending: false });
 
         if (!error && data !== null) {
-          const remoteFiltered = data
+          const valid = data
             .filter(isValidWork)
             .filter((w: any) => !isPastClient(w))
             .filter((w: any) => !deletedIds.has(w.id));
-          const remoteIds = new Set(remoteFiltered.map((d: any) => d.id));
-
-          // AUTO-SYNC: local works not in Supabase → push them now
-          const allLocal = getLocalWorks().filter(isValidWork).filter((w) => !isPastClient(w)).filter((w) => !deletedIds.has(w.id));
-          const unsynced = allLocal.filter((l) => !remoteIds.has(l.id));
-          if (unsynced.length > 0) {
-            for (const item of unsynced) {
-              const { error: e } = await supabase.from("works").upsert(item);
-              if (e) {
-                await supabase.from("works").upsert({ ...item, category: "General Editing" });
-              }
-            }
-            // Re-fetch so the updated list shows
-            const { data: fresh } = await supabase
-              .from("works")
-              .select("*")
-              .eq("status", "published")
-              .order("sort_order", { ascending: true })
-              .order("created_at", { ascending: false });
-            if (fresh) {
-              const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
-              const valid = fresh
-                .filter(isValidWork)
-                .filter((w: any) => !isPastClient(w))
-                .filter((w: any) => !draftIds.has(w.id))
-                .filter((w: any) => !deletedIds.has(w.id));
-              setDbProjects(valid.map(toProjectData));
-            }
-            return;
-          }
-
-          if (remoteFiltered.length > 0) {
-            const draftIds = new Set(allLocal.filter((w) => w.status === "draft").map((w) => w.id));
-            const valid = remoteFiltered
-              .filter((w: any) => !draftIds.has(w.id))
-              .filter((w: any) => !deletedIds.has(w.id));
-            setDbProjects(valid.map(toProjectData));
-          } else {
-            setDbProjects(localPublished.map(toProjectData));
-          }
+          setDbProjects(valid.map(toProjectData));
+          return;
         }
       } catch (err) {
         console.error("Error loading portfolio works:", err);
       }
+
+      // Fallback to local published works only if Supabase request fails
+      const localPublished = getLocalWorks()
+        .filter(isValidWork)
+        .filter((w) => !isPastClient(w))
+        .filter((w) => !deletedIds.has(w.id))
+        .filter((w) => w.status === "published");
+      setDbProjects(localPublished.map(toProjectData));
     }
 
     async function loadPastClients() {
-      const PAST_CLIENT_PREFIX = "__PAST_CLIENT::";
-      function decodeWork(w: any): PastClient | null {
-        try {
-          if (!w.description || !w.description.startsWith(PAST_CLIENT_PREFIX)) return null;
-          const data = JSON.parse(w.description.slice(PAST_CLIENT_PREFIX.length));
-          return {
-            id: w.id,
-            client_name: data.client_name || w.title,
-            video_title: `${data.client_name || w.title}'s Video`,
-            video_url: data.video_url || w.video_url || w.embed_url || "",
-            video_urls: data.video_urls || (data.video_url ? [data.video_url] : []),
-            embed_url: w.embed_url || null,
-            thumbnail_url: w.thumbnail_url || null,
-            socials: data.socials || {},
-            status: (w.status === "published" ? "published" : "draft") as "published" | "draft",
-            sort_order: w.sort_order || 0,
-            created_at: w.created_at || new Date().toISOString(),
-          };
-        } catch {
-          return null;
-        }
-      }
-
       // Show local immediately
       const localClients = getLocalPastClients().filter((c) => c.status === "published");
       setPastClients(localClients);
 
-      // Fetch from works table (no separate past_clients table needed)
+      // Fetch from works table
       try {
         const { data } = await supabase
           .from("works")
@@ -164,13 +101,16 @@ function PortfolioPage() {
           .order("created_at", { ascending: false });
 
         if (data && data.length > 0) {
-          const remoteClients = data.map(decodeWork).filter(Boolean) as PastClient[];
+          const remoteClients = data
+            .map(decodePastClientWork)
+            .filter(Boolean)
+            .filter((c: any) => isValidWork(c)) as PastClient[];
           if (remoteClients.length > 0) {
             setPastClients(remoteClients);
           }
         }
       } catch (err) {
-        console.warn("Supabase past_clients (works) load warning:", err);
+        console.warn("Supabase past_clients load warning:", err);
       }
     }
 

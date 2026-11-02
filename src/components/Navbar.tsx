@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { sound } from "./SoundSystem";
-import { Volume2, VolumeX, Sparkles, Menu, X, Shield, Film, Sliders, Layers, DollarSign, Mail, Home } from "lucide-react";
+import { Volume2, VolumeX, Sparkles, Menu, X, Shield, Film, Sliders, Layers, Mail, Home } from "lucide-react";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -29,7 +29,6 @@ export function Navbar() {
     { to: "/portfolio", label: "Work", icon: Film },
     { to: "/showcase", label: "Motion Lab", icon: Sliders, badge: "CRAZY" },
     { to: "/about", label: "About", icon: Sparkles },
-    { to: "/pricing", label: "Pricing", icon: DollarSign },
     { to: "/contact", label: "Contact", icon: Mail },
   ];
 

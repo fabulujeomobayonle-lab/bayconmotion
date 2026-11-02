@@ -75,34 +75,14 @@ export type PastClient = {
   created_at: string;
 };
 
-export const INITIAL_WORKS: Work[] = [
-  {
-    id: "ef2cd025-d964-489c-8e6b-bf0b39f724e6",
-    title: "turning raw footage to a viral talking head",
-    category: "Talking Head",
-    description: "Turning raw talking head footage into an engaging, fast-paced experience 🔥\nAdded smooth cuts, captions, sound design, zooms, and visual effects to improve retention.",
-    status: "published",
-    embed_url: "https://www.youtube.com/shorts/7ecfQbWEiIU?feature=share",
-    video_url: null,
-    thumbnail_url: "https://messtlmcuoowaxfbntkl.supabase.co/storage/v1/object/sign/works-thumbnails/8412e8f2-2723-41a0-9d50-d4284d7d4cd0.jpeg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85MzUzNzRlZS04MzU1LTQ4NDQtOTA4MC00M2I0Nzg4NTJkYjkiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ3b3Jrcy10aHVtYm5haWxzLzg0MTJlOGYyLTI3MjMtNDFhMC05ZDUwLWQ0Mjg0ZDdkNGNkMC5qcGVnIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4MTUyNTYyOCwiZXhwIjozMzU4MzI1NjI4fQ.moelUds4-X4FQ9v0Xp6BxOx2IY0dafAGLXUQdI7OvP8",
-    sort_order: 1,
-    created_at: "2026-06-15T12:13:49.407Z",
-  },
-  {
-    id: "c6d6ecfb-42ae-4905-a8a2-c6df14c6940c",
-    title: "High-Retention YouTube Edit",
-    category: "Talking Head",
-    description: "A high-energy creator edit inspired by the fast-paced style of modern YouTube content. This project focuses on audience retention through dynamic pacing, engaging cuts, sound design, motion effects, and seamless transitions.\n\nThe goal was to transform raw footage into an entertaining viewing experience while maintaining the creator's personality and energy.\n\nEdited with DaVinci Resolve.",
-    status: "published",
-    embed_url: "https://youtube.com/shorts/HOfw5dRqRPw?feature=share",
-    video_url: null,
-    thumbnail_url: "https://messtlmcuoowaxfbntkl.supabase.co/storage/v1/object/sign/works-thumbnails/e2daffe4-ba65-4c54-9f86-452997127450.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85MzUzNzRlZS04MzU1LTQ4NDQtOTA4MC00M2I0Nzg4NTJkYjkiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ3b3Jrcy10aHVtYm5haWxzL2UyZGFmZmU0LWJhNjUtNGM1NC05Zjg2LTQ1Mjk5NzEyNzQ1MC5wbmciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzgyMjM1MzE0LCJleHAiOjMzNTkwMzUzMTR9.Kl6naU50dIyzkrgCqpCpsHcx-KOTckrChQxPy8ztXWM",
-    sort_order: 2,
-    created_at: "2026-06-23T17:21:55.632Z",
-  },
-];
+// Clean initial slate - never inject stale demo videos into an empty portfolio
+export const INITIAL_WORKS: Work[] = [];
 
-export const BANNED_WORK_IDS = new Set<string>([]);
+// Banned IDs: ensure legacy demo video IDs are permanently blocked from appearing
+export const BANNED_WORK_IDS = new Set<string>([
+  "ef2cd025-d964-489c-8e6b-bf0b39f724e6",
+  "c6d6ecfb-42ae-4905-a8a2-c6df14c6940c",
+]);
 
 const STORAGE_KEY_WORKS = "baycon_works_v2";
 const STORAGE_KEY_REVIEWS = "baycon_reviews_v2";
@@ -112,13 +92,16 @@ const STORAGE_KEY_PAST_CLIENTS = "baycon_past_clients_v2";
 
 export function getDeletedWorkIds(): Set<string> {
   try {
-    if (typeof window === "undefined") return new Set();
+    if (typeof window === "undefined") return new Set(BANNED_WORK_IDS);
     const raw = localStorage.getItem(STORAGE_KEY_DELETED);
-    if (!raw) return new Set();
+    if (!raw) return new Set(BANNED_WORK_IDS);
     const arr = JSON.parse(raw);
-    return new Set(Array.isArray(arr) ? arr : []);
+    const set = new Set(Array.isArray(arr) ? arr : []);
+    // Always include banned legacy IDs
+    BANNED_WORK_IDS.forEach((id) => set.add(id));
+    return set;
   } catch {
-    return new Set();
+    return new Set(BANNED_WORK_IDS);
   }
 }
 
@@ -150,56 +133,21 @@ export function isValidWork(w: any): boolean {
   return true;
 }
 
-try {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("baycon_works");
-    localStorage.removeItem("baycon_works_v1");
-    localStorage.removeItem("baycon_demo_works");
-    // Clean up deleted list if it contained the real user video IDs
-    const deletedRaw = localStorage.getItem(STORAGE_KEY_DELETED);
-    if (deletedRaw) {
-      try {
-        const deletedArr = JSON.parse(deletedRaw);
-        if (Array.isArray(deletedArr)) {
-          const filtered = deletedArr.filter(
-            (id: string) => id !== "ef2cd025-d964-489c-8e6b-bf0b39f724e6" && id !== "c6d6ecfb-42ae-4905-a8a2-c6df14c6940c"
-          );
-          localStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(filtered));
-        }
-      } catch {}
-    }
-  }
-} catch {}
-
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function isUuid(id: string | null | undefined): boolean {
   if (!id) return false;
   return UUID_REGEX.test(id);
 }
 
-const STORAGE_KEY_SEEDED = "baycon_seeded_v3";
-
 export function getLocalWorks(): Work[] {
   try {
-    if (typeof window === "undefined") return INITIAL_WORKS;
-    const isSeeded = localStorage.getItem(STORAGE_KEY_SEEDED);
+    if (typeof window === "undefined") return [];
     const raw = localStorage.getItem(STORAGE_KEY_WORKS);
-
-    if (!isSeeded) {
-      localStorage.setItem(STORAGE_KEY_SEEDED, "true");
-      // Seed initial works only once if empty
-      if (!raw || raw === "[]") {
-        localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(INITIAL_WORKS));
-        return INITIAL_WORKS;
-      }
-    }
-
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
     const deletedIds = getDeletedWorkIds();
-    // Filter out obsolete legacy items, demo items, and deleted items
     const cleaned = parsed.filter(isValidWork).filter((w) => !deletedIds.has(w.id));
     if (cleaned.length !== parsed.length) {
       localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(cleaned));
@@ -210,22 +158,29 @@ export function getLocalWorks(): Work[] {
   }
 }
 
-export function clearAllWorks(): void {
+export async function clearAllWorks(): Promise<{ success: boolean; error?: any }> {
   try {
-    localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify([]));
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify([]));
+    }
   } catch {}
 
-  (async () => {
-    try {
-      // Clear all works from Supabase
-      await supabase.from("works").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-    } catch (err) {
-      console.warn("Supabase clear works warning:", err);
+  try {
+    const { error } = await supabase.from("works").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (error) {
+      console.warn("Supabase clear works warning:", error);
+      return { success: false, error };
     }
-  })();
+    return { success: true };
+  } catch (err) {
+    console.warn("Supabase clear works exception:", err);
+    return { success: false, error: err };
+  }
 }
 
-export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order"> & { id?: string }): Work {
+export async function saveLocalWork(
+  work: Omit<Work, "id" | "created_at" | "sort_order"> & { id?: string }
+): Promise<Work & { error?: any }> {
   const current = getLocalWorks();
   let updatedWork: Work;
 
@@ -239,7 +194,6 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
     const existing = current.find((w) => w.id === work.id);
     let finalId = work.id;
 
-    // If existing item has a non-UUID demo ID, upgrade it to a real UUID so Supabase accepts it
     if (!isUuid(finalId)) {
       finalId = generateId();
     }
@@ -255,18 +209,20 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
     const next = current.map((w) => (w.id === work.id ? updatedWork : w));
     localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(next));
 
-    // Sync to Supabase
-    (async () => {
-      try {
-        if (isUuid(work.id)) {
-          await supabase.from("works").update(updatedWork).eq("id", work.id);
-        } else {
-          await supabase.from("works").upsert(updatedWork);
-        }
-      } catch (err) {
-        console.warn("Supabase work update sync warning:", err);
+    try {
+      const { error } = isUuid(work.id)
+        ? await supabase.from("works").update(updatedWork).eq("id", work.id)
+        : await supabase.from("works").upsert(updatedWork);
+
+      if (error) {
+        console.warn("Supabase work update sync warning:", error);
+        return { ...updatedWork, error };
       }
-    })();
+      return updatedWork;
+    } catch (err) {
+      console.warn("Supabase work update sync exception:", err);
+      return { ...updatedWork, error: err };
+    }
   } else {
     updatedWork = {
       ...work,
@@ -277,16 +233,18 @@ export function saveLocalWork(work: Omit<Work, "id" | "created_at" | "sort_order
     const next = [updatedWork, ...current];
     localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(next));
 
-    (async () => {
-      try {
-        await supabase.from("works").insert(updatedWork);
-      } catch (err) {
-        console.warn("Supabase work insert sync warning:", err);
+    try {
+      const { error } = await supabase.from("works").insert(updatedWork);
+      if (error) {
+        console.warn("Supabase work insert sync warning:", error);
+        return { ...updatedWork, error };
       }
-    })();
+      return updatedWork;
+    } catch (err) {
+      console.warn("Supabase work insert sync exception:", err);
+      return { ...updatedWork, error: err };
+    }
   }
-
-  return updatedWork;
 }
 
 export async function deleteLocalWork(id: string): Promise<{ success: boolean; error?: any }> {
@@ -302,9 +260,7 @@ export async function deleteLocalWork(id: string): Promise<{ success: boolean; e
   try {
     const { error: delError } = await supabase.from("works").delete().eq("id", id);
     if (delError) {
-      console.warn("Supabase work delete sync error (likely RLS policy):", delError);
-      // Attempt fallback to draft
-      await supabase.from("works").update({ status: "draft" }).eq("id", id);
+      console.warn("Supabase work delete sync error:", delError);
       return { success: false, error: delError };
     }
     return { success: true };
@@ -314,7 +270,7 @@ export async function deleteLocalWork(id: string): Promise<{ success: boolean; e
   }
 }
 
-export function toggleLocalWorkStatus(id: string): "published" | "draft" {
+export async function toggleLocalWorkStatus(id: string): Promise<"published" | "draft"> {
   const current = getLocalWorks();
   let newStatus: "published" | "draft" = "draft";
   let targetWork: Work | undefined;
@@ -330,25 +286,53 @@ export function toggleLocalWorkStatus(id: string): "published" | "draft" {
 
   localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(next));
 
-  // Sync status change to Supabase
-  (async () => {
-    try {
-      if (isUuid(id)) {
-        await supabase.from("works").update({ status: newStatus }).eq("id", id);
-      } else if (targetWork) {
-        // Upgrade demo work to UUID and upsert so database recognizes it
-        const newUuid = generateId();
-        const upgraded = { ...targetWork, id: newUuid };
-        const updatedList = getLocalWorks().map((w) => (w.id === id ? upgraded : w));
-        localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(updatedList));
-        await supabase.from("works").upsert(upgraded);
-      }
-    } catch (err) {
-      console.warn("Supabase toggle status sync warning:", err);
+  try {
+    if (isUuid(id)) {
+      await supabase.from("works").update({ status: newStatus }).eq("id", id);
+    } else if (targetWork) {
+      const newUuid = generateId();
+      const upgraded = { ...targetWork, id: newUuid };
+      const updatedList = getLocalWorks().map((w) => (w.id === id ? upgraded : w));
+      localStorage.setItem(STORAGE_KEY_WORKS, JSON.stringify(updatedList));
+      await supabase.from("works").upsert(upgraded);
     }
-  })();
+  } catch (err) {
+    console.warn("Supabase toggle status sync warning:", err);
+  }
 
   return newStatus;
+}
+
+// ─── CLOUD DATABASE HEALTH CHECK ──────────────────────────────────────────
+export async function checkSupabaseWorksAccess(): Promise<{ canRead: boolean; canWrite: boolean; error?: string }> {
+  try {
+    // 1. Test read
+    const { error: readError } = await supabase.from("works").select("id").limit(1);
+    if (readError) {
+      return { canRead: false, canWrite: false, error: readError.message };
+    }
+
+    // 2. Test write & immediate delete with a dedicated ping ID
+    const testId = "00000000-0000-0000-0000-000000000001";
+    const testRow = {
+      id: testId,
+      title: "__HEALTH_CHECK__",
+      category: "General Editing",
+      status: "draft",
+    };
+
+    const { error: writeError } = await supabase.from("works").upsert(testRow);
+    if (writeError) {
+      return { canRead: true, canWrite: false, error: writeError.message };
+    }
+
+    // Clean up test row
+    await supabase.from("works").delete().eq("id", testId);
+
+    return { canRead: true, canWrite: true };
+  } catch (err: any) {
+    return { canRead: false, canWrite: false, error: err?.message || String(err) };
+  }
 }
 
 export function getLocalReviews(): ClientReview[] {
@@ -484,12 +468,6 @@ export function fileToDataUrl(file: File): Promise<string> {
 export const INITIAL_PAST_CLIENTS: PastClient[] = [];
 
 // ─── PAST CLIENTS BACKED BY THE WORKS TABLE ───────────────────────────────
-// The past_clients table doesn't exist yet in Supabase, but the works table
-// is fully open with anon write access. We store past clients as works with:
-//   category = "General Editing"
-//   description = "__PAST_CLIENT::{json}"
-// This gives perfect cross-device sync without needing a new table.
-
 const PAST_CLIENT_PREFIX = "__PAST_CLIENT::";
 
 function encodePastClient(client: PastClient): string {
@@ -501,7 +479,7 @@ function encodePastClient(client: PastClient): string {
   });
 }
 
-function decodePastClientWork(w: any): PastClient | null {
+export function decodePastClientWork(w: any): PastClient | null {
   try {
     if (!w.description || !w.description.startsWith(PAST_CLIENT_PREFIX)) return null;
     const data = JSON.parse(w.description.slice(PAST_CLIENT_PREFIX.length));
@@ -525,21 +503,18 @@ function decodePastClientWork(w: any): PastClient | null {
 
 export function getLocalPastClients(): PastClient[] {
   try {
-    // Pull from local works that are past clients
     const works = getLocalWorks();
     const fromWorks = works
       .map(decodePastClientWork)
       .filter(Boolean) as PastClient[];
 
-    // Also check legacy key
     try {
       const raw = localStorage.getItem(STORAGE_KEY_PAST_CLIENTS);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          // Filter out demo/initial placeholder clients
           const legacy = parsed.filter(
-            (c: any) => c.id && !c.id.startsWith("client-") && !fromWorks.find(w => w.id === c.id)
+            (c: any) => c.id && !c.id.startsWith("client-") && !fromWorks.find((w) => w.id === c.id)
           );
           return [...fromWorks, ...legacy];
         }
@@ -552,9 +527,9 @@ export function getLocalPastClients(): PastClient[] {
   }
 }
 
-export function saveLocalPastClient(
+export async function saveLocalPastClient(
   client: Omit<PastClient, "id" | "created_at" | "sort_order"> & { id?: string }
-): PastClient {
+): Promise<PastClient & { error?: any }> {
   const description = encodePastClient({
     ...client,
     id: client.id || "",
@@ -575,7 +550,7 @@ export function saveLocalPastClient(
     thumbnail_url: client.thumbnail_url || null,
   };
 
-  const savedWork = saveLocalWork(workPayload);
+  const savedWork = await saveLocalWork(workPayload);
 
   return {
     id: savedWork.id,
@@ -589,6 +564,7 @@ export function saveLocalPastClient(
     status: client.status,
     sort_order: savedWork.sort_order,
     created_at: savedWork.created_at,
+    error: savedWork.error,
   };
 }
 
@@ -596,12 +572,6 @@ export async function deleteLocalPastClient(id: string): Promise<{ success: bool
   return await deleteLocalWork(id);
 }
 
-export function toggleLocalPastClientStatus(id: string): "published" | "draft" {
-  return toggleLocalWorkStatus(id) as "published" | "draft";
+export async function toggleLocalPastClientStatus(id: string): Promise<"published" | "draft"> {
+  return (await toggleLocalWorkStatus(id)) as "published" | "draft";
 }
-
-export async function syncLocalPastClientsToSupabase(): Promise<void> {
-  // No-op: past clients are now works, they sync automatically via saveLocalWork
-}
-
-

@@ -106,7 +106,7 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Studio Arsenal & Pricing */}
+          {/* Studio Services & Inquiries */}
           <div>
             <h4 className="font-display text-xs font-bold tracking-widest text-foreground uppercase mb-4 flex items-center gap-1.5">
               <Cpu className="h-3.5 w-3.5 text-cyan-400" />
@@ -114,8 +114,8 @@ export function Footer() {
             </h4>
             <ul className="space-y-2 text-xs text-muted-foreground font-mono">
               <li>
-                <Link to="/pricing" className="hover:text-primary transition-colors flex items-center gap-1">
-                  <span>&gt; Pricing & Plans</span>
+                <Link to="/services" className="hover:text-primary transition-colors flex items-center gap-1">
+                  <span>&gt; Editing Capabilities</span>
                 </Link>
               </li>
               <li>

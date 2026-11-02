@@ -18,7 +18,10 @@ import {
   Globe,
   Sparkles,
   TrendingUp,
-  Play
+  Play,
+  AlertTriangle,
+  Copy,
+  RefreshCw,
 } from "lucide-react";
 import { parseYouTubeUrl } from "@/utils/video";
 import {
@@ -35,10 +38,12 @@ import {
   saveLocalPastClient,
   deleteLocalPastClient,
   toggleLocalPastClientStatus,
+  decodePastClientWork,
+  checkSupabaseWorksAccess,
   type Work,
   type ClientReview,
   type ContactMessage,
-  type PastClient
+  type PastClient,
 } from "@/utils/storage";
 
 const supabase = supabaseTyped as unknown as { from: (table: string) => any };
@@ -74,7 +79,26 @@ function AdminPage() {
   const [tab, setTab] = useState<"add_youtube" | "works" | "past_clients" | "reviews" | "messages">("add_youtube");
   const [isSaving, setIsSaving] = useState(false);
 
+  // Cloud database health & RLS status
+  const [cloudStatus, setCloudStatus] = useState<"checking" | "connected" | "blocked">("checking");
+  const [cloudErrorMessage, setCloudErrorMessage] = useState<string>("");
+  const [isCheckingCloud, setIsCheckingCloud] = useState(false);
+
+  async function checkCloud() {
+    setIsCheckingCloud(true);
+    const res = await checkSupabaseWorksAccess();
+    if (res.canWrite) {
+      setCloudStatus("connected");
+      setCloudErrorMessage("");
+    } else {
+      setCloudStatus("blocked");
+      setCloudErrorMessage(res.error || "Supabase Row-Level Security is blocking writes.");
+    }
+    setIsCheckingCloud(false);
+  }
+
   useEffect(() => {
+    checkCloud();
     loadWorks();
     loadPastClients();
     loadMessages();
@@ -82,109 +106,52 @@ function AdminPage() {
   }, []);
 
   async function loadPastClients() {
-    // Past clients are stored as works with description starting with __PAST_CLIENT::
-    // This bypasses the missing past_clients table and uses the existing works table
-    const PAST_CLIENT_PREFIX = "__PAST_CLIENT::";
-
-    function decodeWork(w: any): PastClient | null {
-      try {
-        if (!w.description || !w.description.startsWith(PAST_CLIENT_PREFIX)) return null;
-        const data = JSON.parse(w.description.slice(PAST_CLIENT_PREFIX.length));
-        return {
-          id: w.id,
-          client_name: data.client_name || w.title,
-          video_title: `${data.client_name || w.title}'s Video`,
-          video_url: data.video_url || w.video_url || w.embed_url || "",
-          video_urls: data.video_urls || (data.video_url ? [data.video_url] : []),
-          embed_url: w.embed_url || null,
-          thumbnail_url: w.thumbnail_url || null,
-          socials: data.socials || {},
-          status: w.status === "published" ? "published" : "draft",
-          sort_order: w.sort_order || 0,
-          created_at: w.created_at || new Date().toISOString(),
-        };
-      } catch {
-        return null;
-      }
-    }
-
-    // First set from local works immediately
-    const localClients = getLocalPastClients();
-    setPastClients(localClients);
-
-    // Then fetch from Supabase works table
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("works")
         .select("*")
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: false });
-      if (data && data.length > 0) {
-        const remoteClients = data.map(decodeWork).filter(Boolean) as PastClient[];
-        if (remoteClients.length > 0) {
-          setPastClients(remoteClients);
-        }
+
+      if (!error && data && data.length > 0) {
+        const remoteClients = data
+          .map(decodePastClientWork)
+          .filter(Boolean)
+          .filter((c: any) => isValidWork(c)) as PastClient[];
+        setPastClients(remoteClients);
+        return;
       }
     } catch (err) {
-      console.warn("Supabase loadPastClients (from works) error:", err);
+      console.warn("Supabase loadPastClients error:", err);
     }
-  }
 
+    const localClients = getLocalPastClients();
+    setPastClients(localClients);
+  }
 
   async function loadWorks() {
     const isPastClient = (w: any) => typeof w?.description === "string" && w.description.startsWith("__PAST_CLIENT::");
-    const local = getLocalWorks().filter(isValidWork).filter(w => !isPastClient(w));
-    setWorks(local);
+
     try {
-      const { data } = await supabase.from("works").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
-      if (data !== null) {
-        const remoteFiltered = (data || []).filter(isValidWork).filter((w: any) => !isPastClient(w));
-        const remoteIds = new Set(remoteFiltered.map((d: any) => d.id));
+      const { data, error } = await supabase
+        .from("works")
+        .select("*")
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
 
-        // Auto-sync: push any local works missing from Supabase
-        const unsynced = local.filter((l) => !remoteIds.has(l.id));
-        if (unsynced.length > 0) {
-          let synced = 0;
-          for (const item of unsynced) {
-            // Try with real category first; if enum rejects it, fall back to "General Editing"
-            const { error } = await supabase.from("works").upsert(item);
-            if (error) {
-              const fallback = { ...item, category: "General Editing" as const };
-              await supabase.from("works").upsert(fallback);
-            }
-            synced++;
-          }
-          if (synced > 0) {
-            toast.success(`Synced ${synced} video${synced > 1 ? "s" : ""} to cloud — now visible on all devices!`);
-          }
-          // Re-fetch after sync
-          const { data: refetched } = await supabase.from("works").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
-          if (refetched) {
-            const rf = refetched.filter(isValidWork).filter((w: any) => !isPastClient(w));
-            const localMap2 = new Map(local.map((l) => [l.id, l]));
-            const merged2 = rf.map((remote: any) => {
-              const li = localMap2.get(remote.id);
-              return li ? { ...remote, status: li.status } : remote;
-            });
-            const rfIds = new Set(rf.map((d: any) => d.id));
-            setWorks([...local.filter(l => !rfIds.has(l.id)), ...merged2]);
-          }
-          return;
-        }
-
-        const localMap = new Map(local.map((l) => [l.id, l]));
-        const mergedRemote = remoteFiltered.map((remote: any) => {
-          const localItem = localMap.get(remote.id);
-          return localItem ? { ...remote, status: localItem.status } : remote;
-        });
-        const unmergedLocal = local.filter((l) => !remoteIds.has(l.id));
-        setWorks([...unmergedLocal, ...mergedRemote]);
+      if (!error && data !== null) {
+        const remoteWorks = data.filter(isValidWork).filter((w: any) => !isPastClient(w));
+        setWorks(remoteWorks);
+        localStorage.setItem("baycon_works_v2", JSON.stringify(remoteWorks));
+        return;
       }
-    } catch {}
+    } catch (err) {
+      console.warn("Supabase loadWorks warning:", err);
+    }
+
+    const local = getLocalWorks().filter(isValidWork).filter((w) => !isPastClient(w));
+    setWorks(local);
   }
-
-
-
 
   async function loadReviews() {
     const local = getLocalReviews();
@@ -243,7 +210,7 @@ function AdminPage() {
       const embed_url = parsedYt.embedUrl || primaryVideo;
       const thumbnail_url = parsedYt.thumbnailUrl || null;
 
-      saveLocalPastClient({
+      const saved = await saveLocalPastClient({
         id: editingClient ? editingClient.id : undefined,
         client_name,
         video_title: `${client_name}'s Video`,
@@ -260,11 +227,16 @@ function AdminPage() {
         status,
       });
 
-      toast.success(editingClient ? "Client Updated!" : "Past Client Added & Published!");
+      if (saved.error) {
+        toast.warning("Client saved locally, but Cloud sync was blocked by Supabase. Run the SQL fix at the top of the page.", { duration: 8000 });
+      } else {
+        toast.success(editingClient ? "Client Updated & Live!" : "Past Client Added & Published Live!");
+      }
+
       setEditingClient(null);
       setShowClientForm(false);
       setClientVideoUrls([""]);
-      loadPastClients();
+      await loadPastClients();
     } catch (err: any) {
       toast.error(err.message || "Failed to save client");
     } finally {
@@ -287,7 +259,7 @@ function AdminPage() {
       const embed_url = parsedYt.embedUrl || link;
       const thumbnail_url = parsedYt.thumbnailUrl || null;
 
-      saveLocalWork({
+      const saved = await saveLocalWork({
         title,
         category,
         description: null,
@@ -297,9 +269,17 @@ function AdminPage() {
         thumbnail_url,
       });
 
-      toast.success("YouTube Video Added & Published!");
+      if (saved.error) {
+        toast.warning(
+          "Video saved in local browser, but Supabase Cloud blocked it! Please run the 1-click SQL fix at the top of the admin page so visitors can see it.",
+          { duration: 8000 }
+        );
+      } else {
+        toast.success("YouTube Video Added & Published Live!");
+      }
+
       (e.target as HTMLFormElement).reset();
-      loadWorks();
+      await loadWorks();
       setTab("works");
     } catch (err: any) {
       toast.error(err.message || "Failed to add video");
