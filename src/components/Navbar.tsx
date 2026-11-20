@@ -1,11 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { sound } from "./SoundSystem";
-import { Volume2, VolumeX, Sparkles, Menu, X, Shield, Film, Sliders, Layers, Mail, Home } from "lucide-react";
+import { musicEngine } from "@/lib/MusicEngine";
+import { Volume2, VolumeX, Sparkles, Menu, X, Shield, Film, Sliders, Layers, Mail, Home, Music2 } from "lucide-react";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(() => musicEngine.getState().isPlaying);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
@@ -17,10 +19,21 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    return musicEngine.subscribe(() => {
+      setIsMusicPlaying(musicEngine.getState().isPlaying);
+    });
+  }, []);
+
   const toggleAudio = () => {
     const state = sound.toggleSound();
     setSoundOn(state);
     if (state) sound.playClick(900);
+  };
+
+  const toggleMusic = () => {
+    sound.playClick(800);
+    musicEngine.toggle();
   };
 
   const navLinks = [
@@ -92,6 +105,29 @@ export function Navbar() {
 
         {/* Controls & Actions */}
         <div className="hidden md:flex items-center gap-3">
+          {/* Ambient Music Toggle */}
+          <button
+            onClick={toggleMusic}
+            onMouseEnter={() => sound.playClick(600)}
+            data-cursor={isMusicPlaying ? "PAUSE BGM" : "PLAY BGM"}
+            title={isMusicPlaying ? "Pause Ambient Music" : "Play Ambient Music"}
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-mono font-bold transition-all ${
+              isMusicPlaying
+                ? "border-cyan-400 bg-cyan-500/20 text-cyan-300 shadow-[0_0_16px_rgba(0,246,255,0.4)]"
+                : "border-border bg-card/60 text-muted-foreground hover:text-white hover:border-white/20"
+            }`}
+          >
+            <Music2 className={`h-3.5 w-3.5 ${isMusicPlaying ? "animate-pulse text-cyan-300" : ""}`} />
+            <span className="text-[10px]">{isMusicPlaying ? "MUSIC ON" : "MUSIC"}</span>
+            {isMusicPlaying && (
+              <div className="flex items-end gap-[2px] h-3 ml-0.5">
+                <span className="w-[2px] h-2 bg-cyan-400 animate-pulse" />
+                <span className="w-[2px] h-3 bg-cyan-400 animate-pulse delay-75" />
+                <span className="w-[2px] h-1.5 bg-cyan-400 animate-pulse delay-150" />
+              </div>
+            )}
+          </button>
+
           {/* Sound FX Toggle */}
           <button
             onClick={toggleAudio}
@@ -124,7 +160,7 @@ export function Navbar() {
             data-cursor="BOOK EDIT"
             className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-primary via-red-500 to-primary px-5 py-2 text-xs font-black tracking-widest text-black shadow-[0_0_25px_rgba(255,0,60,0.7)] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(255,0,60,1)] border border-red-300/40"
           >
-            <span className="relative z-10 flex items-center gap-1.5 font-display">
+            <span className="relative z-10 flex items-center gap-1.5 font-aesthetic font-black">
               <span>START PROJECT</span>
               <span className="text-sm font-bold">→</span>
             </span>
@@ -134,6 +170,15 @@ export function Navbar() {
 
         {/* Mobile Menu Button */}
         <div className="flex items-center gap-2 md:hidden">
+          <button
+            onClick={toggleMusic}
+            title={isMusicPlaying ? "Pause Music" : "Play Music"}
+            className={`flex h-8 w-8 items-center justify-center rounded-md border ${
+              isMusicPlaying ? "border-cyan-400 bg-cyan-500/20 text-cyan-300" : "border-border text-muted-foreground"
+            }`}
+          >
+            <Music2 className="h-3.5 w-3.5" />
+          </button>
           <button
             onClick={toggleAudio}
             className={`flex h-8 w-8 items-center justify-center rounded-md border ${

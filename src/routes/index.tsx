@@ -5,6 +5,7 @@ import { CyberBackground } from "@/components/CyberBackground";
 import { CyberCursor } from "@/components/CyberCursor";
 import { PageTransitionTrigger } from "@/components/PageTransition";
 import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
+import { Interactive3DStage } from "@/components/Interactive3DStage";
 import { sound } from "@/components/SoundSystem";
 import { useState, useEffect } from "react";
 import { Play, Sparkles, Zap, Flame, Shield, ArrowRight, Star, Film, Sliders, CheckCircle2, TrendingUp } from "lucide-react";
@@ -82,13 +83,13 @@ function HomePage() {
               <span className="text-emerald-400 font-semibold tracking-wider">24-48H TURNAROUND</span>
             </div>
 
-            {/* Kinetic Title */}
-            <h1 className="font-impact text-4xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight leading-[0.92] text-foreground max-w-5xl uppercase">
-              RAW FOOTAGE IN. <br />
+            {/* Kinetic Aesthetic Title */}
+            <h1 className="font-aesthetic text-4xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight leading-[0.92] text-foreground max-w-5xl uppercase font-black">
+              RAW FOOTAGE <span className="font-editorial italic font-normal tracking-normal lowercase text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-pink-400 to-cyan-300">in.</span> <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-pink-500 to-cyan-400 drop-shadow-[0_0_40px_rgba(255,0,60,0.8)]">
-                VIRAL EDIT OUT.
+                VIRAL EDIT <span className="font-editorial italic font-normal tracking-normal lowercase text-cyan-300">out.</span>
               </span> <br />
-              STOP THE SCROLL.
+              STOP THE <span className="font-editorial italic font-normal tracking-normal lowercase text-white">scroll.</span>
             </h1>
 
             {/* Subtitle */}
@@ -118,7 +119,7 @@ function HomePage() {
                 to="/contact"
                 onMouseEnter={() => sound.playGlitch()}
                 data-cursor="START NOW"
-                className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-primary via-red-500 to-primary px-8 py-4 font-display text-sm font-black tracking-widest text-black shadow-[0_0_35px_rgba(255,0,60,0.8)] transition-all hover:scale-105 hover:shadow-[0_0_55px_rgba(255,0,60,1)] border border-red-300/50"
+                className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-primary via-red-500 to-primary px-8 py-4 font-aesthetic text-sm font-black tracking-widest text-black shadow-[0_0_35px_rgba(255,0,60,0.8)] transition-all hover:scale-105 hover:shadow-[0_0_55px_rgba(255,0,60,1)] border border-red-300/50"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   <span>START YOUR PROJECT</span>
@@ -131,7 +132,7 @@ function HomePage() {
                 to="/showcase"
                 onMouseEnter={() => sound.playClick(700)}
                 data-cursor="MOTION LAB"
-                className="flex items-center gap-2 rounded-xl border border-cyan-400/70 bg-cyan-500/15 px-8 py-4 font-display text-sm font-bold tracking-widest text-cyan-300 backdrop-blur-md shadow-[0_0_25px_rgba(0,246,255,0.4)] hover:bg-cyan-500/25 hover:border-cyan-300 transition-all hover:scale-105"
+                className="flex items-center gap-2 rounded-xl border border-cyan-400/70 bg-cyan-500/15 px-8 py-4 font-aesthetic text-sm font-bold tracking-widest text-cyan-300 backdrop-blur-md shadow-[0_0_25px_rgba(0,246,255,0.4)] hover:bg-cyan-500/25 hover:border-cyan-300 transition-all hover:scale-105"
               >
                 <Sliders className="h-4 w-4 text-cyan-400" />
                 <span>EXPLORE MOTION LAB</span>
@@ -141,23 +142,39 @@ function HomePage() {
             {/* High-Tech HUD Video Stats Console */}
             <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-5xl rounded-2xl border border-white/10 bg-card/60 p-6 backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] font-mono text-center">
               <div className="p-3 rounded-xl border border-red-500/20 bg-red-500/5 hover:border-red-500/50 transition-colors">
-                <div className="font-impact text-3xl md:text-4xl text-primary drop-shadow-[0_0_15px_rgba(255,0,60,0.6)]">120M+</div>
+                <div className="font-aesthetic text-3xl md:text-4xl text-primary font-black drop-shadow-[0_0_15px_rgba(255,0,60,0.6)]">120M+</div>
                 <div className="text-[10px] text-slate-400 uppercase tracking-widest mt-1 font-bold">Organic Views Generated</div>
               </div>
               <div className="p-3 rounded-xl border border-cyan-400/20 bg-cyan-500/5 hover:border-cyan-400/50 transition-colors">
-                <div className="font-impact text-3xl md:text-4xl text-cyan-300 drop-shadow-[0_0_15px_rgba(0,246,255,0.6)]">450+</div>
+                <div className="font-aesthetic text-3xl md:text-4xl text-cyan-300 font-black drop-shadow-[0_0_15px_rgba(0,246,255,0.6)]">450+</div>
                 <div className="text-[10px] text-slate-400 uppercase tracking-widest mt-1 font-bold">Videos Edited & Rendered</div>
               </div>
               <div className="p-3 rounded-xl border border-purple-400/20 bg-purple-500/5 hover:border-purple-400/50 transition-colors">
-                <div className="font-impact text-3xl md:text-4xl text-purple-300 drop-shadow-[0_0_15px_rgba(191,0,255,0.6)]">84.2%</div>
+                <div className="font-aesthetic text-3xl md:text-4xl text-purple-300 font-black drop-shadow-[0_0_15px_rgba(191,0,255,0.6)]">84.2%</div>
                 <div className="text-[10px] text-slate-400 uppercase tracking-widest mt-1 font-bold">Avg Retention Rate</div>
               </div>
               <div className="p-3 rounded-xl border border-emerald-400/20 bg-emerald-500/5 hover:border-emerald-400/50 transition-colors">
-                <div className="font-impact text-3xl md:text-4xl text-emerald-300 drop-shadow-[0_0_15px_rgba(0,255,102,0.6)]">24-48H</div>
+                <div className="font-aesthetic text-3xl md:text-4xl text-emerald-300 font-black drop-shadow-[0_0_15px_rgba(0,255,102,0.6)]">24-48H</div>
                 <div className="text-[10px] text-slate-400 uppercase tracking-widest mt-1 font-bold">Fast Turnaround SLA</div>
               </div>
             </div>
           </div>
+        </section>
+
+        {/* INTERACTIVE 3D OBJECTS VIEWPORT SECTION */}
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+          <div className="text-center mb-8 space-y-2">
+            <div className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest">
+              <span>● REALTIME SPATIAL ARTIFACT VIEWPORT</span>
+            </div>
+            <h2 className="font-aesthetic text-3xl sm:text-5xl text-foreground uppercase tracking-wide font-black">
+              INTERACTIVE 3D <span className="font-editorial italic font-normal text-cyan-300 lowercase">studio</span> <span className="text-primary neon-text">OBJECTS</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 font-mono max-w-xl mx-auto">
+              Drag and rotate 360° to inspect our 3D director slate, cinema anamorphic lens, keyframe crystal, or audio reactor. Click anywhere on the viewport to trigger kinetic impact feedback.
+            </p>
+          </div>
+          <Interactive3DStage />
         </section>
 
         {/* BEFORE / AFTER INTERACTIVE SLIDER SECTION */}
@@ -166,8 +183,8 @@ function HomePage() {
             <div className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest">
               <span>● INTERACTIVE PROGRAM MONITOR</span>
             </div>
-            <h2 className="font-impact text-3xl sm:text-5xl text-foreground uppercase tracking-wide">
-              THE BAYCON <span className="text-primary neon-text">TRANSFORMATION</span>
+            <h2 className="font-aesthetic text-3xl sm:text-5xl text-foreground uppercase tracking-wide font-black">
+              THE BAYCON <span className="font-editorial italic font-normal text-cyan-300 lowercase">grade</span> <span className="text-primary neon-text">TRANSFORMATION</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 font-mono max-w-xl mx-auto">
               Drag the timeline cursor to see how unedited raw camera files transform into high-energy, scroll-stopping videos.
@@ -182,8 +199,8 @@ function HomePage() {
 
           <div className="rounded-3xl border border-cyan-500/40 bg-gradient-to-b from-card/90 via-card/70 to-card/90 p-8 md:p-12 backdrop-blur-2xl text-center shadow-[0_0_40px_rgba(0,246,255,0.15)] hover:border-cyan-400/70 transition-all mt-12 max-w-4xl mx-auto">
             <Film className="h-10 w-10 text-cyan-400 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(0,246,255,0.7)]" />
-            <h2 className="font-impact text-2xl sm:text-4xl text-foreground uppercase tracking-wide mb-3">
-              VIEW OUR FULL <span className="text-cyan-400 neon-text-cyan">VIDEO SHOWCASE</span>
+            <h2 className="font-aesthetic text-2xl sm:text-4xl text-foreground uppercase tracking-wide mb-3 font-black">
+              VIEW OUR FULL <span className="font-editorial italic font-normal text-cyan-300 lowercase">curated</span> <span className="text-cyan-400 neon-text-cyan">VIDEO SHOWCASE</span>
             </h2>
             <p className="text-sm text-slate-300 font-mono max-w-xl mx-auto mb-6">
               Explore our full collection of client reels, YouTube long-form content, and commercial spots. See exactly how we engineer videos for maximum retention.
@@ -192,7 +209,7 @@ function HomePage() {
             <Link
               to="/portfolio"
               onMouseEnter={() => sound.playClick(600)}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-red-500 px-8 py-4 font-display text-sm font-black tracking-widest text-black shadow-[0_0_30px_rgba(255,0,60,0.7)] hover:shadow-[0_0_45px_rgba(255,0,60,1)] transition-all hover:scale-105 border border-red-300/40"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-red-500 px-8 py-4 font-aesthetic text-sm font-black tracking-widest text-black shadow-[0_0_30px_rgba(255,0,60,0.7)] hover:shadow-[0_0_45px_rgba(255,0,60,1)] transition-all hover:scale-105 border border-red-300/40"
             >
               <span>VIEW FULL PORTFOLIO</span>
               <ArrowRight className="h-4 w-4" />
@@ -207,8 +224,8 @@ function HomePage() {
               <div className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-primary tracking-widest uppercase">
                 <span>POST-PRODUCTION ARCHITECTURE</span>
               </div>
-              <h2 className="font-impact text-3xl md:text-5xl text-foreground uppercase tracking-wide">
-                BUILT FOR <span className="text-primary neon-text">HIGH ENGAGEMENT</span>
+              <h2 className="font-aesthetic text-3xl md:text-5xl text-foreground uppercase tracking-wide font-black">
+                BUILT FOR <span className="font-editorial italic font-normal text-cyan-300 lowercase">extreme</span> <span className="text-primary neon-text">ENGAGEMENT</span>
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 font-mono">
                 Every frame, cut, and sound effect is engineered to retain viewer attention.
@@ -220,7 +237,7 @@ function HomePage() {
                 <div className="h-12 w-12 rounded-xl bg-red-500/20 text-red-400 border border-red-500/40 flex items-center justify-center font-bold text-xl shadow-[0_0_15px_rgba(255,0,60,0.4)]">
                   ⚡
                 </div>
-                <h3 className="font-display text-base font-black text-white tracking-wide">01 // KINETIC CAPTIONS & SFX</h3>
+                <h3 className="font-aesthetic text-base font-black text-white tracking-wide">01 // KINETIC CAPTIONS & SFX</h3>
                 <p className="text-xs text-slate-300 leading-relaxed font-sans">
                   Dynamic animated text popping on cue with impact swooshes and sound effects that keep viewers locked on screen without glancing away.
                 </p>
@@ -234,7 +251,7 @@ function HomePage() {
                 <div className="h-12 w-12 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center font-bold text-xl shadow-[0_0_15px_rgba(0,246,255,0.4)]">
                   🎨
                 </div>
-                <h3 className="font-display text-base font-black text-white tracking-wide">02 // HOLLYWOOD COLOR GRADING</h3>
+                <h3 className="font-aesthetic text-base font-black text-white tracking-wide">02 // HOLLYWOOD COLOR GRADING</h3>
                 <p className="text-xs text-slate-300 leading-relaxed font-sans">
                   Custom ACES and DaVinci Resolve color pipelines tailored for skin tone perfection, neon contrast, and moody cinematic aesthetics.
                 </p>
@@ -248,7 +265,7 @@ function HomePage() {
                 <div className="h-12 w-12 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-400/40 flex items-center justify-center font-bold text-xl shadow-[0_0_15px_rgba(191,0,255,0.4)]">
                   🔊
                 </div>
-                <h3 className="font-display text-base font-black text-white tracking-wide">03 // SPATIAL AUDIO DESIGN</h3>
+                <h3 className="font-aesthetic text-base font-black text-white tracking-wide">03 // SPATIAL AUDIO DESIGN</h3>
                 <p className="text-xs text-slate-300 leading-relaxed font-sans">
                   Multi-track audio mastering with low-end bass drops, swooshes, risers, and AI voice isolation filters that deliver punchy cinema acoustics.
                 </p>
@@ -267,8 +284,8 @@ function HomePage() {
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1 font-mono text-[11px] font-bold text-primary mb-4">
               <span>READY TO SCALE</span>
             </div>
-            <h2 className="font-impact text-3xl sm:text-5xl md:text-6xl text-foreground uppercase tracking-tight">
-              SCALE YOUR <span className="text-primary neon-text">VIDEO CONTENT</span>
+            <h2 className="font-aesthetic text-3xl sm:text-5xl md:text-6xl text-foreground uppercase tracking-tight font-black">
+              SCALE YOUR <span className="font-editorial italic font-normal text-cyan-300 lowercase">digital</span> <span className="text-primary neon-text">REACH</span>
             </h2>
             <p className="mt-4 text-sm text-slate-300 font-mono max-w-xl mx-auto leading-relaxed">
               Get your first edited video back within 24 hours. Guaranteed quality, maximum retention, or 100% money back.
@@ -278,7 +295,7 @@ function HomePage() {
               <Link
                 to="/contact"
                 onMouseEnter={() => sound.playGlitch()}
-                className="rounded-xl bg-gradient-to-r from-primary to-red-500 px-10 py-4 font-display text-sm font-black tracking-widest text-black shadow-[0_0_35px_rgba(255,0,60,0.8)] hover:shadow-[0_0_55px_rgba(255,0,60,1)] transition-all hover:scale-105 border border-red-300/50"
+                className="rounded-xl bg-gradient-to-r from-primary to-red-500 px-10 py-4 font-aesthetic text-sm font-black tracking-widest text-black shadow-[0_0_35px_rgba(255,0,60,0.8)] hover:shadow-[0_0_55px_rgba(255,0,60,1)] transition-all hover:scale-105 border border-red-300/50"
               >
                 BOOK YOUR EDIT SESSION NOW
               </Link>

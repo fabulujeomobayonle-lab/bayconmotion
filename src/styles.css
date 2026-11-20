@@ -65,9 +65,11 @@
   --color-motion-gold: var(--motion-gold);
   --color-motion-lime: var(--motion-lime);
   --color-motion-violet: var(--motion-violet);
+  --font-aesthetic: "Syne", "Orbitron", sans-serif;
+  --font-editorial: "Playfair Display", Georgia, serif;
   --font-display: "Orbitron", "Space Grotesk", sans-serif;
-  --font-impact: "Archivo Black", "Orbitron", sans-serif;
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-impact: "Syne", "Archivo Black", "Orbitron", sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
 
@@ -1443,6 +1445,32 @@
   font-family: var(--font-impact);
   font-size: 8rem;
   color: color-mix(in oklab, var(--chapter-accent) 24%, transparent);
+}
+
+/* Aesthetic & High-Fashion Studio Typography Utilities */
+.font-aesthetic {
+  font-family: "Syne", "Orbitron", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-editorial {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+}
+
+.aesthetic-title {
+  font-family: "Syne", sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.aesthetic-serif-accent {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
 }
 
 @media (max-width: 767px) {
