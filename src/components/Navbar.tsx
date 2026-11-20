@@ -36,8 +36,8 @@ export function Navbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-background/85 backdrop-blur-xl border-b border-border/80 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
-          : "bg-gradient-to-b from-background/90 via-background/40 to-transparent"
+          ? "bg-background/90 backdrop-blur-2xl border-b border-primary/30 shadow-[0_8px_32px_rgba(255,0,60,0.15)]"
+          : "bg-gradient-to-b from-background/95 via-background/60 to-transparent"
       }`}
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
@@ -45,23 +45,23 @@ export function Navbar() {
         <Link
           to="/"
           onMouseEnter={() => sound.playClick(600)}
-          className="brand-lockup group flex items-center gap-2 font-display text-lg font-black tracking-widest text-foreground transition-transform hover:scale-105"
+          className="brand-lockup group flex items-center gap-2.5 font-display text-lg font-black tracking-widest text-foreground transition-transform hover:scale-105"
         >
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-primary/20 border border-primary/60 text-primary shadow-[0_0_15px_rgba(255,26,26,0.5)] group-hover:bg-primary group-hover:text-black transition-all duration-300">
-            <span className="font-impact text-xl">B</span>
-            <span className="absolute -top-1 -right-1 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary text-white shadow-[0_0_20px_rgba(255,0,60,0.7)] group-hover:bg-primary group-hover:text-black transition-all duration-300">
+            <span className="font-impact text-xl text-primary group-hover:text-black">B</span>
+            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-80" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400 shadow-[0_0_8px_#00f6ff]" />
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="neon-text text-base leading-none tracking-widest font-black">BAYCON</span>
-            <span className="font-mono text-[9px] tracking-widest text-muted-foreground">MOTION & EDIT</span>
+            <span className="neon-text text-base leading-none tracking-widest font-black text-white">BAYCON</span>
+            <span className="font-mono text-[9px] tracking-widest text-cyan-400 font-bold">MOTION & EDIT</span>
           </div>
         </Link>
 
         {/* Desktop Nav Links */}
-        <ul className="hidden md:flex items-center gap-1 lg:gap-2 text-xs font-semibold">
+        <ul className="hidden md:flex items-center gap-1.5 lg:gap-2.5 text-xs font-semibold">
           {navLinks.map((link) => {
             const isActive = currentPath === link.to;
             const Icon = link.icon;
@@ -71,16 +71,16 @@ export function Navbar() {
                   to={link.to}
                   onMouseEnter={() => sound.playClick(750)}
                   data-cursor={link.label.toUpperCase()}
-                  className={`relative flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-all duration-200 ${
+                  className={`relative flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 transition-all duration-200 font-mono ${
                     isActive
-                      ? "bg-primary/15 text-primary border border-primary/40 shadow-[0_0_12px_rgba(255,26,26,0.3)]"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      ? "bg-primary/20 text-white border border-primary/60 shadow-[0_0_16px_rgba(255,0,60,0.4)]"
+                      : "text-muted-foreground hover:text-white hover:bg-white/5 hover:border-white/10 border border-transparent"
                   }`}
                 >
-                  <Icon className={`h-3.5 w-3.5 ${isActive ? "text-primary animate-pulse" : ""}`} />
-                  <span>{link.label}</span>
+                  <Icon className={`h-3.5 w-3.5 ${isActive ? "text-primary animate-pulse" : "text-muted-foreground"}`} />
+                  <span className="tracking-wider">{link.label}</span>
                   {link.badge && (
-                    <span className="ml-1 rounded-full bg-cyan-500/20 px-1.5 py-0.2 font-mono text-[8px] font-bold text-cyan-400 border border-cyan-400/40 animate-pulse">
+                    <span className="ml-1 rounded-full bg-cyan-500/25 px-1.5 py-0.2 font-mono text-[8px] font-black text-cyan-300 border border-cyan-400/60 shadow-[0_0_10px_rgba(0,246,255,0.4)] animate-pulse">
                       {link.badge}
                     </span>
                   )}
@@ -98,10 +98,10 @@ export function Navbar() {
             onMouseEnter={() => sound.playClick(500)}
             data-cursor="AUDIO FX"
             title={soundOn ? "Mute Futuristic Sound FX" : "Enable Sound FX"}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
+            className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all ${
               soundOn
-                ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400 shadow-[0_0_12px_rgba(0,255,249,0.3)]"
-                : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
+                ? "border-cyan-400 bg-cyan-500/15 text-cyan-300 shadow-[0_0_16px_rgba(0,246,255,0.4)]"
+                : "border-border bg-card/60 text-muted-foreground hover:text-foreground"
             }`}
           >
             {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
@@ -111,7 +111,7 @@ export function Navbar() {
           <Link
             to="/admin"
             onMouseEnter={() => sound.playClick(600)}
-            className="flex items-center gap-1.5 rounded-lg border border-border/80 bg-muted/30 px-3 py-1.5 text-xs font-mono font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all"
+            className="flex items-center gap-1.5 rounded-xl border border-border/80 bg-card/60 px-3 py-1.5 text-xs font-mono font-bold text-muted-foreground hover:text-white hover:border-primary/60 hover:shadow-[0_0_15px_rgba(255,0,60,0.25)] transition-all"
           >
             <Shield className="h-3.5 w-3.5 text-primary" />
             <span>ADMIN</span>
@@ -122,13 +122,13 @@ export function Navbar() {
             to="/contact"
             onMouseEnter={() => sound.playGlitch()}
             data-cursor="BOOK EDIT"
-            className="cyber-button-sm group relative overflow-hidden rounded-lg bg-primary px-4 py-2 text-xs font-bold tracking-wider text-black shadow-[0_0_20px_rgba(255,26,26,0.6)] transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(255,26,26,0.9)]"
+            className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-primary via-red-500 to-primary px-5 py-2 text-xs font-black tracking-widest text-black shadow-[0_0_25px_rgba(255,0,60,0.7)] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(255,0,60,1)] border border-red-300/40"
           >
-            <span className="relative z-10 flex items-center gap-1.5">
+            <span className="relative z-10 flex items-center gap-1.5 font-display">
               <span>START PROJECT</span>
-              <span className="text-sm">→</span>
+              <span className="text-sm font-bold">→</span>
             </span>
-            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:translate-x-full transition-transform duration-700" />
+            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 to-transparent group-hover:translate-x-full transition-transform duration-700" />
           </Link>
         </div>
 

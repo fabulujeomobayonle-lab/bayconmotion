@@ -42,16 +42,16 @@ export function CyberBackground() {
       pulseSpeed: number;
     }
 
-    const colors = ["#ff1a1a", "#00fff9", "#ff007f", "#7928ca", "#ffb703"];
-    const nodes: Node[] = Array.from({ length: 45 }, () => ({
+    const colors = ["#ff003c", "#00f6ff", "#bf00ff", "#00ff66", "#ffbe0b"];
+    const nodes: Node[] = Array.from({ length: 50 }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.8,
-      vy: (Math.random() - 0.5) * 0.8,
-      radius: Math.random() * 2 + 1,
+      vx: (Math.random() - 0.5) * 0.9,
+      vy: (Math.random() - 0.5) * 0.9,
+      radius: Math.random() * 2.5 + 1.2,
       color: colors[Math.floor(Math.random() * colors.length)],
       pulse: Math.random() * Math.PI,
-      pulseSpeed: 0.02 + Math.random() * 0.03,
+      pulseSpeed: 0.025 + Math.random() * 0.035,
     }));
 
     // Floating 3D motion keyframe frames
@@ -68,35 +68,54 @@ export function CyberBackground() {
       label: string;
     }
 
-    const labels = ["REC ● 4K60", "LUT: CYBER_RED", "KEYFRAME 01", "AUDIO_SPECTRA", "TIMELINE_CUT", "DA VINCI 18"];
-    const frames: FloatingFrame[] = Array.from({ length: 8 }, (_, i) => ({
-      x: (Math.random() - 0.5) * width * 0.8 + width / 2,
-      y: (Math.random() - 0.5) * height * 0.8 + height / 2,
+    const labels = ["REC ● 4K60 DCI", "ACES_COLOR_GRADE", "KEYFRAME 01", "AUDIO_SPECTRA_3D", "CUT_PACING_0.6S", "DA VINCI 19"];
+    const frames: FloatingFrame[] = Array.from({ length: 9 }, (_, i) => ({
+      x: (Math.random() - 0.5) * width * 0.85 + width / 2,
+      y: (Math.random() - 0.5) * height * 0.85 + height / 2,
       z: Math.random() * 300 + 100,
-      size: 70 + Math.random() * 50,
+      size: 75 + Math.random() * 55,
       rotX: Math.random() * Math.PI,
       rotY: Math.random() * Math.PI,
       rotZ: Math.random() * Math.PI,
-      rotSpeedX: (Math.random() - 0.5) * 0.008,
-      rotSpeedY: (Math.random() - 0.5) * 0.008,
+      rotSpeedX: (Math.random() - 0.5) * 0.009,
+      rotSpeedY: (Math.random() - 0.5) * 0.009,
       label: labels[i % labels.length],
     }));
 
     let time = 0;
 
     const render = () => {
-      time += 0.015;
-      ctx.fillStyle = "rgba(10, 10, 10, 0.4)";
+      time += 0.016;
+      ctx.fillStyle = "rgba(7, 8, 11, 0.45)";
       ctx.fillRect(0, 0, width, height);
 
-      // Draw subtle perspective laser grid
+      // Studio Ambient Glow Blobs (Drifting light sources)
+      const blob1X = width * 0.2 + Math.sin(time * 0.5) * (width * 0.15);
+      const blob1Y = height * 0.3 + Math.cos(time * 0.4) * (height * 0.15);
+      const grad1 = ctx.createRadialGradient(blob1X, blob1Y, 10, blob1X, blob1Y, 400);
+      grad1.addColorStop(0, "rgba(255, 0, 60, 0.12)");
+      grad1.addColorStop(0.5, "rgba(191, 0, 255, 0.05)");
+      grad1.addColorStop(1, "transparent");
+      ctx.fillStyle = grad1;
+      ctx.fillRect(0, 0, width, height);
+
+      const blob2X = width * 0.8 + Math.cos(time * 0.4) * (width * 0.15);
+      const blob2Y = height * 0.6 + Math.sin(time * 0.6) * (height * 0.15);
+      const grad2 = ctx.createRadialGradient(blob2X, blob2Y, 10, blob2X, blob2Y, 450);
+      grad2.addColorStop(0, "rgba(0, 246, 255, 0.12)");
+      grad2.addColorStop(0.5, "rgba(0, 255, 102, 0.04)");
+      grad2.addColorStop(1, "transparent");
+      ctx.fillStyle = grad2;
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw subtle perspective laser grid with brighter lines
       ctx.save();
-      ctx.strokeStyle = "rgba(255, 26, 26, 0.04)";
+      ctx.strokeStyle = "rgba(255, 0, 60, 0.06)";
       ctx.lineWidth = 1;
 
-      const gridSize = 60;
-      const offsetX = (time * 15) % gridSize;
-      const offsetY = (time * 15) % gridSize;
+      const gridSize = 64;
+      const offsetX = (time * 16) % gridSize;
+      const offsetY = (time * 16) % gridSize;
 
       for (let x = offsetX; x < width; x += gridSize) {
         ctx.beginPath();
@@ -112,14 +131,14 @@ export function CyberBackground() {
       }
       ctx.restore();
 
-      // Draw Audio Waveform simulation at top & bottom edge
+      // Draw Audio Waveform simulation at top & bottom edge with brighter neon
       ctx.save();
       ctx.beginPath();
-      ctx.strokeStyle = "rgba(0, 255, 249, 0.12)";
+      ctx.strokeStyle = "rgba(0, 246, 255, 0.22)";
       ctx.lineWidth = 2;
 
-      for (let x = 0; x < width; x += 15) {
-        const waveY = height - 40 + Math.sin(x * 0.01 + time * 3) * 12 + Math.cos(x * 0.02 - time * 2) * 8;
+      for (let x = 0; x < width; x += 12) {
+        const waveY = height - 42 + Math.sin(x * 0.012 + time * 3.5) * 14 + Math.cos(x * 0.024 - time * 2.2) * 9;
         if (x === 0) ctx.moveTo(x, waveY);
         else ctx.lineTo(x, waveY);
       }
@@ -132,16 +151,16 @@ export function CyberBackground() {
         f.rotY += f.rotSpeedY;
 
         // Mouse parallax shift
-        const targetX = f.x + (mouseX - width / 2) * 0.02;
-        const targetY = f.y + (mouseY - height / 2) * 0.02;
+        const targetX = f.x + (mouseX - width / 2) * 0.03;
+        const targetY = f.y + (mouseY - height / 2) * 0.03;
 
         ctx.save();
         ctx.translate(targetX, targetY);
 
         // Draw HUD wireframe box
-        ctx.strokeStyle = "rgba(255, 26, 26, 0.18)";
-        ctx.fillStyle = "rgba(255, 26, 26, 0.02)";
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255, 0, 60, 0.25)";
+        ctx.fillStyle = "rgba(255, 0, 60, 0.03)";
+        ctx.lineWidth = 1.2;
 
         const w = f.size;
         const h = f.size * 0.6;
@@ -151,8 +170,9 @@ export function CyberBackground() {
         ctx.stroke();
 
         // Corner ticks
-        const cLen = 6;
-        ctx.strokeStyle = "rgba(0, 255, 249, 0.4)";
+        const cLen = 8;
+        ctx.strokeStyle = "rgba(0, 246, 255, 0.7)";
+        ctx.lineWidth = 1.5;
         // Top-left
         ctx.beginPath();
         ctx.moveTo(-w / 2, -h / 2 + cLen);
@@ -167,9 +187,9 @@ export function CyberBackground() {
         ctx.stroke();
 
         // Label
-        ctx.font = "8px 'JetBrains Mono', monospace";
-        ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
-        ctx.fillText(f.label, -w / 2 + 4, -h / 2 - 4);
+        ctx.font = "9px 'JetBrains Mono', monospace";
+        ctx.fillStyle = "rgba(0, 246, 255, 0.6)";
+        ctx.fillText(f.label, -w / 2 + 4, -h / 2 - 5);
 
         ctx.restore();
       });
@@ -183,7 +203,7 @@ export function CyberBackground() {
         if (n.y < 0 || n.y > height) n.vy *= -1;
 
         n.pulse += n.pulseSpeed;
-        const r = n.radius + Math.sin(n.pulse) * 1.2;
+        const r = n.radius + Math.sin(n.pulse) * 1.3;
 
         // Draw particle node
         ctx.save();
@@ -191,7 +211,7 @@ export function CyberBackground() {
         ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
         ctx.fillStyle = n.color;
         ctx.shadowColor = n.color;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 14;
         ctx.fill();
         ctx.restore();
 
@@ -202,12 +222,12 @@ export function CyberBackground() {
           const dy = n.y - n2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 140) {
+          if (dist < 150) {
             ctx.save();
             ctx.beginPath();
             ctx.moveTo(n.x, n.y);
             ctx.lineTo(n2.x, n2.y);
-            ctx.strokeStyle = `rgba(255, 26, 26, ${(1 - dist / 140) * 0.15})`;
+            ctx.strokeStyle = `rgba(255, 0, 60, ${(1 - dist / 150) * 0.22})`;
             ctx.lineWidth = 1;
             ctx.stroke();
             ctx.restore();
@@ -219,13 +239,13 @@ export function CyberBackground() {
         const mdy = n.y - mouseY;
         const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
 
-        if (mdist < 180) {
+        if (mdist < 190) {
           ctx.save();
           ctx.beginPath();
           ctx.moveTo(n.x, n.y);
           ctx.lineTo(mouseX, mouseY);
-          ctx.strokeStyle = `rgba(0, 255, 249, ${(1 - mdist / 180) * 0.3})`;
-          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = `rgba(0, 246, 255, ${(1 - mdist / 190) * 0.45})`;
+          ctx.lineWidth = 1.4;
           ctx.stroke();
           ctx.restore();
         }
@@ -246,7 +266,7 @@ export function CyberBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-0 h-full w-full opacity-60"
+      className="pointer-events-none fixed inset-0 z-0 h-full w-full opacity-85"
     />
   );
 }

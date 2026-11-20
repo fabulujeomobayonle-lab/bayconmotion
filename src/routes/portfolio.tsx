@@ -150,7 +150,7 @@ function PortfolioPage() {
 
         {/* FILTER TABS */}
         <section className="mx-auto max-w-7xl px-4 pb-8 sm:px-6 flex justify-center">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 p-2 backdrop-blur-xl">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-white/10 bg-card/90 p-2 backdrop-blur-2xl shadow-xl">
             {["ALL", "Talking Head", "Motion Graphics", "Random Edit", "Business Edit"].map((category) => (
               <button
                 key={category}
@@ -160,8 +160,8 @@ function PortfolioPage() {
                 }}
                 className={`rounded-xl px-5 py-2 font-mono text-xs font-bold transition-all ${
                   filter === category
-                    ? "bg-primary text-black shadow-[0_0_15px_rgba(255,26,26,0.6)]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    ? "bg-gradient-to-r from-primary to-red-500 text-black shadow-[0_0_20px_rgba(255,0,60,0.8)]"
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
                 }`}
               >
                 {category.toUpperCase()}
@@ -173,14 +173,14 @@ function PortfolioPage() {
         {/* PORTFOLIO GRID */}
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
           {filteredProjects.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-border/80 bg-card/40 p-12 text-center max-w-xl mx-auto space-y-4 my-8">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/30 text-primary mx-auto">
+            <div className="rounded-3xl border border-dashed border-white/15 bg-card/60 p-12 text-center max-w-xl mx-auto space-y-4 my-8 shadow-2xl backdrop-blur-xl">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/20 border border-primary/50 text-primary mx-auto shadow-[0_0_20px_rgba(255,0,60,0.4)]">
                 <Film className="h-8 w-8" />
               </div>
               <h3 className="font-impact text-2xl uppercase tracking-wide text-foreground">
                 PORTFOLIO EMPTY / READY FOR NEW UPLOADS
               </h3>
-              <p className="text-xs text-muted-foreground font-mono leading-relaxed">
+              <p className="text-xs text-slate-300 font-mono leading-relaxed">
                 All demo videos have been cleared! Your portfolio is now a clean slate. Videos you upload and set to "Published" in your Admin will appear here immediately.
               </p>
             </div>
@@ -197,7 +197,7 @@ function PortfolioPage() {
                       sound.playClick(600);
                       setSelectedProject(p);
                     }}
-                    className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-card/90 p-5 transition-all duration-300 hover:border-primary hover:shadow-[0_0_40px_rgba(255,26,26,0.3)] hover:-translate-y-1 backdrop-blur-xl"
+                    className="group relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-card/90 p-5 transition-all duration-300 hover:border-primary/80 hover:shadow-[0_0_45px_rgba(255,0,60,0.35)] hover:-translate-y-1 backdrop-blur-2xl"
                   >
                     <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden flex items-center justify-center mb-4">
                       {thumb ? (
@@ -210,12 +210,12 @@ function PortfolioPage() {
                         <div className="absolute inset-0 bg-gradient-to-tr from-purple-950 via-background to-cyan-950 group-hover:scale-105 transition-transform duration-500" />
                       )}
 
-                      <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-black shadow-[0_0_20px_rgba(255,26,26,0.8)] group-hover:scale-110 transition-transform">
+                      <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-red-500 text-black shadow-[0_0_25px_rgba(255,0,60,0.9)] group-hover:scale-110 transition-transform border border-white/50">
                         <Play className="h-7 w-7 ml-1 fill-black" />
                       </div>
 
                       {p.views && (
-                        <span className="absolute top-2 right-2 rounded bg-black/80 px-2.5 py-1 font-mono text-[9px] font-bold text-cyan-400 border border-cyan-500/40 z-10">
+                        <span className="absolute top-2 right-2 rounded bg-black/85 px-2.5 py-1 font-mono text-[9px] font-bold text-cyan-300 border border-cyan-400/50 z-10 shadow-[0_0_10px_rgba(0,246,255,0.4)]">
                           {p.views}
                         </span>
                       )}
@@ -224,7 +224,7 @@ function PortfolioPage() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-[10px] font-mono text-primary font-bold">
                         <span>{p.category}</span>
-                        {p.retention && <span className="text-emerald-400">RETENTION: {p.retention}</span>}
+                        {p.retention && <span className="text-emerald-300">RETENTION: {p.retention}</span>}
                       </div>
 
                       <h3 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors">

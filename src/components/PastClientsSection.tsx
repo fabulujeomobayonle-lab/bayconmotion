@@ -116,17 +116,17 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 relative">
       <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 font-mono text-xs font-bold text-primary shadow-[0_0_20px_rgba(255,26,26,0.3)]">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/50 bg-primary/15 px-4 py-1.5 font-mono text-xs font-bold text-primary shadow-[0_0_25px_rgba(255,0,60,0.35)]">
           <Users className="h-3.5 w-3.5" />
-          <span>PAST CLIENTS</span>
+          <span>CLIENT ROSTER & CASE STUDIES</span>
         </div>
 
         <h2 className="font-impact text-3xl sm:text-5xl uppercase tracking-tight text-foreground">
           PAST <span className="text-primary neon-text">CLIENTS</span>
         </h2>
 
-        <p className="text-sm text-muted-foreground font-sans">
-          Click any client below to view their social media handles and watch the YouTube videos created for them.
+        <p className="text-sm text-slate-300 font-sans">
+          Select any client below to inspect their channel credentials and stream the YouTube productions engineered for them.
         </p>
       </div>
 
@@ -144,23 +144,23 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
                 setActiveClientId(client.id);
                 setActiveVideoIndex(0);
               }}
-              className={`group flex items-center gap-2.5 rounded-2xl px-6 py-3.5 font-display text-sm font-bold uppercase tracking-wider transition-all duration-300 ${
+              className={`group flex items-center gap-2.5 rounded-2xl px-6 py-3.5 font-display text-sm font-black uppercase tracking-wider transition-all duration-300 ${
                 isSelected
-                  ? "bg-primary text-black shadow-[0_0_25px_rgba(255,26,26,0.6)] scale-105"
-                  : "border border-border/80 bg-card/60 text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-card/90"
+                  ? "bg-gradient-to-r from-primary to-red-500 text-black shadow-[0_0_30px_rgba(255,0,60,0.8)] scale-105 border border-red-300/60"
+                  : "border border-white/10 bg-card/70 text-slate-300 hover:text-white hover:border-primary/60 hover:bg-card/95 hover:shadow-[0_0_20px_rgba(255,0,60,0.2)]"
               }`}
             >
               <span>{client.client_name}</span>
               {count > 1 && (
                 <span
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
-                    isSelected ? "bg-black/25 text-black font-bold" : "bg-primary/20 text-primary border border-primary/30"
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
+                    isSelected ? "bg-black/30 text-black" : "bg-primary/25 text-primary border border-primary/40 shadow-[0_0_8px_rgba(255,0,60,0.3)]"
                   }`}
                 >
                   {count} videos
                 </span>
               )}
-              <Play className={`h-3.5 w-3.5 transition-transform ${isSelected ? "fill-black rotate-90" : "opacity-40 group-hover:opacity-100"}`} />
+              <Play className={`h-3.5 w-3.5 transition-transform ${isSelected ? "fill-black rotate-90" : "opacity-40 group-hover:opacity-100 group-hover:text-primary"}`} />
             </button>
           );
         })}
@@ -168,20 +168,20 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
 
       {/* ACTIVE CLIENT SHOWCASE CARD */}
       {activeClient && (
-        <div className="max-w-4xl mx-auto rounded-3xl border border-border/80 bg-card/90 p-6 sm:p-8 backdrop-blur-2xl shadow-2xl space-y-6 animate-in fade-in duration-300">
+        <div className="max-w-4xl mx-auto rounded-3xl border border-white/15 bg-card/90 p-6 sm:p-8 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] space-y-6 animate-in fade-in duration-300">
           {/* CLIENT NAME & SOCIAL MEDIA HANDLES */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/70 pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-primary font-bold">CLIENT NAME</span>
-              <h3 className="font-impact text-2xl sm:text-3xl uppercase tracking-wide text-foreground mt-0.5">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-primary font-bold">VERIFIED CLIENT</span>
+              <h3 className="font-impact text-2xl sm:text-3xl uppercase tracking-wide text-white mt-0.5">
                 {activeClient.client_name}
               </h3>
             </div>
 
             {/* SOCIAL MEDIA HANDLES */}
             <div>
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2 sm:text-right">
-                SOCIAL MEDIA HANDLES
+              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-2 sm:text-right font-bold">
+                SOCIAL MEDIA CHANNELS
               </div>
               {activeSocials.length > 0 ? (
                 <div className="flex flex-wrap gap-2 sm:justify-end">
@@ -197,7 +197,21 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
                         target="_blank"
                         rel="noreferrer"
                         onClick={() => sound.playClick(800)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3.5 py-2 font-mono text-xs font-semibold text-foreground hover:border-primary hover:bg-primary/10 hover:text-primary transition-all duration-200"
+                        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-background/90 px-3.5 py-2 font-mono text-xs font-semibold text-foreground hover:border-cyan-400 hover:bg-cyan-500/15 hover:text-cyan-300 hover:shadow-[0_0_15px_rgba(0,246,255,0.3)] transition-all duration-200"
+                      >
+                        <SocialIcon platform={platform} />
+                        <span className="capitalize">{platform}:</span>
+                        <span className="text-white font-bold">{displayHandle}</span>
+                        <ExternalLink className="h-3 w-3 opacity-60 ml-0.5" />
+                      </a>
+                    );
+                  })}
+                </div>
+              ) : (
+                <span className="text-xs font-mono text-muted-foreground italic">No social handle added</span>
+              )}
+            </div>
+          </div>
                       >
                         <SocialIcon platform={platform} />
                         <span className="capitalize">{platform}:</span>
