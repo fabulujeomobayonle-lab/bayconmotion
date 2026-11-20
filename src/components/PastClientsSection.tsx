@@ -212,20 +212,6 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
               )}
             </div>
           </div>
-                      >
-                        <SocialIcon platform={platform} />
-                        <span className="capitalize">{platform}:</span>
-                        <span className="text-primary font-bold">{displayHandle}</span>
-                        <ExternalLink className="h-3 w-3 opacity-60 ml-0.5" />
-                      </a>
-                    );
-                  })}
-                </div>
-              ) : (
-                <span className="text-xs font-mono text-muted-foreground italic">No social handle added</span>
-              )}
-            </div>
-          </div>
 
           {/* MULTIPLE VIDEOS SELECTOR TABS (IF > 1) */}
           {videoList.length > 1 && (
