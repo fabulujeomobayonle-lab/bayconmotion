@@ -7,7 +7,14 @@ export interface ParsedVideo {
   isDirectVideo: boolean;
 }
 
-export function parseYouTubeUrl(url: string | null | undefined): ParsedVideo {
+export interface ParseVideoOptions {
+  autoplay?: boolean;
+}
+
+export function parseYouTubeUrl(
+  url: string | null | undefined,
+  options?: ParseVideoOptions
+): ParsedVideo {
   if (!url || !url.trim()) {
     return {
       embedUrl: null,
@@ -20,6 +27,7 @@ export function parseYouTubeUrl(url: string | null | undefined): ParsedVideo {
   }
 
   const clean = url.trim();
+  const autoplayParam = options?.autoplay ? "autoplay=1" : "autoplay=0";
 
   // Match direct video files
   if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(clean) || clean.startsWith("blob:")) {
@@ -41,7 +49,7 @@ export function parseYouTubeUrl(url: string | null | undefined): ParsedVideo {
   if (ytMatch && ytMatch[1]) {
     const id = ytMatch[1];
     return {
-      embedUrl: `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`,
+      embedUrl: `https://www.youtube.com/embed/${id}?${autoplayParam}&rel=0`,
       watchUrl: `https://www.youtube.com/watch?v=${id}`,
       videoId: id,
       thumbnailUrl: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
@@ -57,7 +65,7 @@ export function parseYouTubeUrl(url: string | null | undefined): ParsedVideo {
   if (vimeoMatch && vimeoMatch[1]) {
     const id = vimeoMatch[1];
     return {
-      embedUrl: `https://player.vimeo.com/video/${id}?autoplay=1`,
+      embedUrl: `https://player.vimeo.com/video/${id}?${autoplayParam}`,
       watchUrl: `https://vimeo.com/${id}`,
       videoId: id,
       thumbnailUrl: null,
@@ -71,7 +79,7 @@ export function parseYouTubeUrl(url: string | null | undefined): ParsedVideo {
   if (loomMatch && loomMatch[1]) {
     const id = loomMatch[1];
     return {
-      embedUrl: `https://www.loom.com/embed/${id}?autoplay=1`,
+      embedUrl: `https://www.loom.com/embed/${id}?${autoplayParam}`,
       watchUrl: `https://www.loom.com/share/${id}`,
       videoId: id,
       thumbnailUrl: null,

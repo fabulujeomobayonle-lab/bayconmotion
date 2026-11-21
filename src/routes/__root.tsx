@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { MusicPlayer } from "@/components/MusicPlayer";
+import { Floating3DObjects } from "@/components/Floating3DObjects";
 
 function NotFoundComponent() {
   return (
@@ -129,6 +130,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <Floating3DObjects />
       <MusicPlayer />
       <Toaster theme="dark" position="top-center" richColors />
     </QueryClientProvider>

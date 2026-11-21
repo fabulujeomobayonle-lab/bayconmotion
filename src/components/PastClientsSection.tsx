@@ -92,6 +92,7 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
     publishedClients.length > 0 ? publishedClients[0].id : null
   );
   const [activeVideoIndex, setActiveVideoIndex] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   if (publishedClients.length === 0) {
     return null;
@@ -143,6 +144,7 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
                 sound.playClick(650);
                 setActiveClientId(client.id);
                 setActiveVideoIndex(0);
+                setIsPlaying(false);
               }}
               className={`group flex items-center gap-2.5 rounded-2xl px-6 py-3.5 font-display text-sm font-black uppercase tracking-wider transition-all duration-300 ${
                 isSelected
@@ -230,6 +232,7 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
                     onClick={() => {
                       sound.playClick(700);
                       setActiveVideoIndex(idx);
+                      setIsPlaying(false);
                     }}
                     className={`rounded-xl px-4 py-2 font-mono text-xs font-bold transition-all flex items-center gap-2 ${
                       activeVideoIndex === idx
@@ -267,16 +270,81 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
               )}
             </div>
 
-            <div className="relative aspect-video w-full rounded-2xl bg-black overflow-hidden border border-border shadow-2xl">
-              {yt.embedUrl ? (
-                <iframe
-                  key={currentVideoUrl}
-                  src={yt.embedUrl}
-                  title={`Video for ${activeClient.client_name}`}
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
+            <div className="relative aspect-video w-full rounded-2xl bg-black overflow-hidden border border-white/15 shadow-2xl group/player">
+              {isPlaying && yt.embedUrl ? (
+                <>
+                  <iframe
+                    key={currentVideoUrl}
+                    src={yt.embedUrl.includes("?") ? `${yt.embedUrl}&autoplay=1` : `${yt.embedUrl}?autoplay=1`}
+                    title={`Video for ${activeClient.client_name}`}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                  <button
+                    onClick={() => {
+                      sound.playClick(500);
+                      setIsPlaying(false);
+                    }}
+                    title="Stop Video"
+                    className="absolute top-3 right-3 z-20 flex items-center gap-1.5 rounded-lg bg-black/85 px-3 py-1.5 font-mono text-[11px] font-bold text-slate-300 hover:text-white hover:bg-black border border-white/25 backdrop-blur-md shadow-lg transition-all"
+                  >
+                    <span>STOP VIDEO</span>
+                    <span>✕</span>
+                  </button>
+                </>
+              ) : yt.embedUrl || yt.watchUrl ? (
+                <div
+                  onClick={() => {
+                    sound.playClick(800);
+                    setIsPlaying(true);
+                  }}
+                  className="relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden select-none"
+                >
+                  {/* Thumbnail Image */}
+                  {yt.thumbnailUrl ? (
+                    <img
+                      src={yt.thumbnailUrl}
+                      alt={`Video thumbnail for ${activeClient.client_name}`}
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover/player:scale-105 opacity-85"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-tr from-purple-950/80 via-black to-cyan-950/80" />
+                  )}
+
+                  {/* Dark vignette overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/60 transition-opacity group-hover/player:opacity-75" />
+
+                  {/* Top info badge */}
+                  <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+                    <span className="rounded-full bg-red-600/90 px-2.5 py-0.5 font-mono text-[10px] font-bold text-white shadow-md">
+                      YOUTUBE
+                    </span>
+                    <span className="rounded-full bg-black/60 px-2.5 py-0.5 font-mono text-[10px] text-slate-300 border border-white/10 backdrop-blur-md">
+                      {videoList.length > 1 ? `VIDEO ${activeVideoIndex + 1} OF ${videoList.length}` : "FEATURED EDIT"}
+                    </span>
+                  </div>
+
+                  {/* Center Glowing Play Button (Matches portfolio style) */}
+                  <div className="relative z-10 flex flex-col items-center gap-3">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-primary via-red-500 to-primary text-black shadow-[0_0_40px_rgba(255,0,60,0.9)] border-2 border-white/80 transition-transform duration-300 group-hover/player:scale-115">
+                      <Play className="h-9 w-9 ml-1.5 fill-black" />
+                    </div>
+                    <div className="rounded-full bg-black/85 px-4 py-1.5 font-display text-xs font-black tracking-widest text-white border border-white/20 backdrop-blur-md shadow-xl group-hover/player:border-primary/80 group-hover/player:text-primary transition-all">
+                      CLICK TO PLAY VIDEO
+                    </div>
+                  </div>
+
+                  {/* Bottom title info */}
+                  <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between text-xs font-mono text-slate-300 pointer-events-none">
+                    <span className="truncate font-bold text-white">
+                      {activeClient.client_name} Production
+                    </span>
+                    <span className="text-cyan-400 font-bold shrink-0">
+                      PLAY ON DEMAND ▶
+                    </span>
+                  </div>
+                </div>
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center space-y-3 bg-zinc-950 p-6 text-center">
                   <Play className="h-12 w-12 text-primary animate-pulse" />

@@ -5,7 +5,6 @@ import { CyberBackground } from "@/components/CyberBackground";
 import { CyberCursor } from "@/components/CyberCursor";
 import { PageTransitionTrigger } from "@/components/PageTransition";
 import { BeforeAfterSlider } from "@/components/BeforeAfterSlider";
-import { Interactive3DStage } from "@/components/Interactive3DStage";
 import { sound } from "@/components/SoundSystem";
 import { useState, useEffect } from "react";
 import { Play, Sparkles, Zap, Flame, Shield, ArrowRight, Star, Film, Sliders, CheckCircle2, TrendingUp } from "lucide-react";
@@ -159,22 +158,6 @@ function HomePage() {
               </div>
             </div>
           </div>
-        </section>
-
-        {/* INTERACTIVE 3D OBJECTS VIEWPORT SECTION */}
-        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-          <div className="text-center mb-8 space-y-2">
-            <div className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest">
-              <span>● REALTIME SPATIAL ARTIFACT VIEWPORT</span>
-            </div>
-            <h2 className="font-aesthetic text-3xl sm:text-5xl text-foreground uppercase tracking-wide font-black">
-              INTERACTIVE 3D <span className="font-editorial italic font-normal text-cyan-300 lowercase">studio</span> <span className="text-primary neon-text">OBJECTS</span>
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-400 font-mono max-w-xl mx-auto">
-              Drag and rotate 360° to inspect our 3D director slate, cinema anamorphic lens, keyframe crystal, or audio reactor. Click anywhere on the viewport to trigger kinetic impact feedback.
-            </p>
-          </div>
-          <Interactive3DStage />
         </section>
 
         {/* BEFORE / AFTER INTERACTIVE SLIDER SECTION */}

@@ -28,7 +28,7 @@ export function VideoModal({
   if (!project) return null;
 
   const rawUrl = project.embedUrl || project.videoUrl;
-  const parsed = parseYouTubeUrl(rawUrl);
+  const parsed = parseYouTubeUrl(rawUrl, { autoplay: true });
 
   return (
     <div className="fixed inset-0 z-[9995] flex items-center justify-center bg-black/85 p-4 backdrop-blur-2xl animate-in fade-in duration-200">
