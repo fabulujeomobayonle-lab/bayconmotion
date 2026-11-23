@@ -63,6 +63,7 @@ export function Floating3DObjects() {
     let animId: number;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
+    let isMobile = width < 768;
 
     let mouseX = -9999;
     let mouseY = -9999;
@@ -72,6 +73,7 @@ export function Floating3DObjects() {
       if (!canvas) return;
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
+      isMobile = width < 768;
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -86,18 +88,42 @@ export function Floating3DObjects() {
       isMouseActive = false;
     };
 
-    // Initialize 6 stylized 3D video editing objects
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches && e.touches.length > 0) {
+        mouseX = e.touches[0].clientX;
+        mouseY = e.touches[0].clientY;
+        isMouseActive = true;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches && e.touches.length > 0) {
+        mouseX = e.touches[0].clientX;
+        mouseY = e.touches[0].clientY;
+        isMouseActive = true;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      mouseX = -9999;
+      mouseY = -9999;
+      isMouseActive = false;
+    };
+
+    // 6 objects on desktop, 3 on mobile for maximum 60FPS fluid mobile scrolling
     const kinds: { kind: ObjectKind; label: string; color: string; glow: string; size: number }[] = [
-      { kind: "keyframe", label: "KEYFRAME // BEZIER", color: "#00f6ff", glow: "rgba(0, 246, 255, 0.8)", size: 36 },
-      { kind: "clapper", label: "SLATE // 4K60 DCI", color: "#ff003c", glow: "rgba(255, 0, 60, 0.85)", size: 40 },
-      { kind: "lens", label: "ANAMORPHIC LENS", color: "#00f6ff", glow: "rgba(0, 246, 255, 0.75)", size: 38 },
+      { kind: "keyframe", label: "KEYFRAME // BEZIER", color: "#00f6ff", glow: "rgba(0, 246, 255, 0.8)", size: isMobile ? 30 : 36 },
+      { kind: "clapper", label: "SLATE // 4K60 DCI", color: "#ff003c", glow: "rgba(255, 0, 60, 0.85)", size: isMobile ? 32 : 40 },
+      { kind: "lens", label: "ANAMORPHIC LENS", color: "#00f6ff", glow: "rgba(0, 246, 255, 0.75)", size: isMobile ? 30 : 38 },
       { kind: "prism", label: "RETENTION PRISM", color: "#bf00ff", glow: "rgba(191, 0, 255, 0.8)", size: 34 },
       { kind: "torus", label: "AUDIO REACTOR 3D", color: "#00ff66", glow: "rgba(0, 255, 102, 0.8)", size: 36 },
       { kind: "keyframe", label: "ACES COLOR MATRIX", color: "#ffbe0b", glow: "rgba(255, 190, 11, 0.8)", size: 32 },
     ];
 
-    const items: Floating3DItem[] = kinds.map((spec, i) => {
-      const startX = (width / (kinds.length + 1)) * (i + 1) + (Math.random() - 0.5) * 80;
+    const activeKinds = isMobile ? kinds.slice(0, 3) : kinds;
+
+    const items: Floating3DItem[] = activeKinds.map((spec, i) => {
+      const startX = (width / (activeKinds.length + 1)) * (i + 1) + (Math.random() - 0.5) * 60;
       const startY = height * 0.2 + (Math.random() * (height * 0.6));
       return {
         id: i,
@@ -106,18 +132,18 @@ export function Floating3DObjects() {
         y: startY,
         z: Math.random() * 80 - 40,
         baseZ: Math.random() * 80 - 40,
-        vx: (Math.random() > 0.5 ? 1 : -1) * (0.25 + Math.random() * 0.4),
-        vy: (Math.random() - 0.5) * 0.35,
-        vz: (Math.random() - 0.5) * 0.15,
+        vx: (Math.random() > 0.5 ? 1 : -1) * (0.2 + Math.random() * 0.3),
+        vy: (Math.random() - 0.5) * 0.25,
+        vz: (Math.random() - 0.5) * 0.1,
         baseSize: spec.size,
         scale: 1,
         targetScale: 1,
         rotX: Math.random() * Math.PI * 2,
         rotY: Math.random() * Math.PI * 2,
         rotZ: Math.random() * Math.PI * 2,
-        rotSpeedX: (Math.random() - 0.5) * 0.015,
-        rotSpeedY: 0.012 + Math.random() * 0.015,
-        rotSpeedZ: (Math.random() - 0.5) * 0.01,
+        rotSpeedX: (Math.random() - 0.5) * 0.012,
+        rotSpeedY: 0.01 + Math.random() * 0.012,
+        rotSpeedZ: (Math.random() - 0.5) * 0.008,
         targetRotSpeedMultiplier: 1,
         currentRotSpeedMultiplier: 1,
         color: spec.color,
@@ -133,18 +159,20 @@ export function Floating3DObjects() {
     const particles: Particle[] = [];
 
     const spawnSparks = (x: number, y: number, color: string, count = 6) => {
-      for (let i = 0; i < count; i++) {
+      // Reduce spark count on mobile
+      const actualCount = isMobile ? Math.min(3, count) : count;
+      for (let i = 0; i < actualCount; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 2.5 + 0.8;
+        const speed = Math.random() * 2 + 0.6;
         particles.push({
           x,
           y,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
           life: 1,
-          maxLife: 25 + Math.random() * 15,
+          maxLife: isMobile ? 18 : 25 + Math.random() * 15,
           color,
-          size: Math.random() * 2.5 + 1.2,
+          size: Math.random() * 2 + 1,
         });
       }
     };
@@ -152,13 +180,13 @@ export function Floating3DObjects() {
     const handlePointerDown = (e: MouseEvent) => {
       items.forEach((item) => {
         const dist = Math.hypot(item.x - e.clientX, item.y - e.clientY);
-        if (dist < item.baseSize * 1.8) {
+        if (dist < item.baseSize * 2.0) {
           sound.playClick(1100, "square");
-          item.targetRotSpeedMultiplier = 6.0;
-          item.targetScale = 1.45;
-          spawnSparks(item.x, item.y, item.color, 14);
+          item.targetRotSpeedMultiplier = 5.0;
+          item.targetScale = 1.35;
+          spawnSparks(item.x, item.y, item.color, isMobile ? 5 : 12);
           if (item.kind === "clapper") {
-            item.clapperAngle = 35;
+            item.clapperAngle = 30;
           }
         }
       });
@@ -167,6 +195,9 @@ export function Floating3DObjects() {
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     window.addEventListener("mouseleave", handleMouseLeave);
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
     window.addEventListener("pointerdown", handlePointerDown);
 
     let time = 0;
@@ -206,8 +237,27 @@ export function Floating3DObjects() {
       };
     };
 
-    const render = () => {
-      time += 0.016;
+    let lastRenderTime = performance.now();
+
+    const render = (currentTime: number) => {
+      // Pause completely if tab is hidden
+      if (document.hidden) {
+        animId = requestAnimationFrame(render);
+        return;
+      }
+
+      // 30 FPS cap on mobile to save GPU cycles and battery
+      const targetFps = isMobile ? 30 : 60;
+      const interval = 1000 / targetFps;
+      const elapsed = currentTime - lastRenderTime;
+
+      if (elapsed < interval) {
+        animId = requestAnimationFrame(render);
+        return;
+      }
+      lastRenderTime = currentTime - (elapsed % interval);
+
+      time += isMobile ? 0.032 : 0.016;
       ctx.clearRect(0, 0, width, height);
 
       const audioPulse = musicEngine.getAudioEnergy();
@@ -299,8 +349,12 @@ export function Floating3DObjects() {
 
         ctx.strokeStyle = item.color;
         ctx.fillStyle = "rgba(10, 12, 18, 0.75)";
-        ctx.shadowColor = item.color;
-        ctx.shadowBlur = item.isHovered ? 20 : 8;
+        if (!isMobile) {
+          ctx.shadowColor = item.color;
+          ctx.shadowBlur = item.isHovered ? 16 : 4;
+        } else {
+          ctx.shadowBlur = 0;
+        }
         ctx.lineWidth = item.isHovered ? 2.2 : 1.4;
 
         // -----------------------------------------------------------
@@ -574,6 +628,9 @@ export function Floating3DObjects() {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseleave", handleMouseLeave);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
       window.removeEventListener("pointerdown", handlePointerDown);
       cancelAnimationFrame(animId);
     };

@@ -12,6 +12,7 @@ export function CyberBackground() {
     let animId: number;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
+    let isMobile = width < 768;
 
     let mouseX = width / 2;
     let mouseY = height / 2;
@@ -20,9 +21,11 @@ export function CyberBackground() {
       if (!canvas) return;
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
+      isMobile = width < 768;
     };
 
     const handleMouseMove = (e: MouseEvent) => {
+      if (isMobile) return;
       mouseX = e.clientX;
       mouseY = e.clientY;
     };
@@ -30,7 +33,7 @@ export function CyberBackground() {
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
 
-    // Particle nodes
+    // Particle nodes (fewer on mobile to prevent CPU/battery drain)
     interface Node {
       x: number;
       y: number;
@@ -43,18 +46,19 @@ export function CyberBackground() {
     }
 
     const colors = ["#ff003c", "#00f6ff", "#bf00ff", "#00ff66", "#ffbe0b"];
-    const nodes: Node[] = Array.from({ length: 50 }, () => ({
+    const nodeCount = isMobile ? 12 : 36;
+    const nodes: Node[] = Array.from({ length: nodeCount }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.9,
-      vy: (Math.random() - 0.5) * 0.9,
-      radius: Math.random() * 2.5 + 1.2,
+      vx: (Math.random() - 0.5) * (isMobile ? 0.4 : 0.8),
+      vy: (Math.random() - 0.5) * (isMobile ? 0.4 : 0.8),
+      radius: Math.random() * 2 + 1,
       color: colors[Math.floor(Math.random() * colors.length)],
       pulse: Math.random() * Math.PI,
-      pulseSpeed: 0.025 + Math.random() * 0.035,
+      pulseSpeed: 0.02 + Math.random() * 0.03,
     }));
 
-    // Floating 3D motion keyframe frames
+    // Floating 3D motion keyframe frames (skip or reduce on mobile)
     interface FloatingFrame {
       x: number;
       y: number;
@@ -69,23 +73,42 @@ export function CyberBackground() {
     }
 
     const labels = ["REC ● 4K60 DCI", "ACES_COLOR_GRADE", "KEYFRAME 01", "AUDIO_SPECTRA_3D", "CUT_PACING_0.6S", "DA VINCI 19"];
-    const frames: FloatingFrame[] = Array.from({ length: 9 }, (_, i) => ({
+    const frameCount = isMobile ? 2 : 6;
+    const frames: FloatingFrame[] = Array.from({ length: frameCount }, (_, i) => ({
       x: (Math.random() - 0.5) * width * 0.85 + width / 2,
       y: (Math.random() - 0.5) * height * 0.85 + height / 2,
       z: Math.random() * 300 + 100,
-      size: 75 + Math.random() * 55,
+      size: isMobile ? 60 : 75 + Math.random() * 45,
       rotX: Math.random() * Math.PI,
       rotY: Math.random() * Math.PI,
       rotZ: Math.random() * Math.PI,
-      rotSpeedX: (Math.random() - 0.5) * 0.009,
-      rotSpeedY: (Math.random() - 0.5) * 0.009,
+      rotSpeedX: (Math.random() - 0.5) * 0.008,
+      rotSpeedY: (Math.random() - 0.5) * 0.008,
       label: labels[i % labels.length],
     }));
 
     let time = 0;
+    let lastRenderTime = performance.now();
 
-    const render = () => {
-      time += 0.016;
+    const render = (currentTime: number) => {
+      // Pause if tab is hidden
+      if (document.hidden) {
+        animId = requestAnimationFrame(render);
+        return;
+      }
+
+      // 30 FPS cap on mobile to save GPU cycles and battery
+      const targetFps = isMobile ? 30 : 60;
+      const interval = 1000 / targetFps;
+      const elapsed = currentTime - lastRenderTime;
+
+      if (elapsed < interval) {
+        animId = requestAnimationFrame(render);
+        return;
+      }
+      lastRenderTime = currentTime - (elapsed % interval);
+
+      time += isMobile ? 0.032 : 0.016;
       ctx.fillStyle = "rgba(7, 8, 11, 0.45)";
       ctx.fillRect(0, 0, width, height);
 
@@ -205,56 +228,60 @@ export function CyberBackground() {
         n.pulse += n.pulseSpeed;
         const r = n.radius + Math.sin(n.pulse) * 1.3;
 
-        // Draw particle node
+        // Draw particle node (no expensive shadow blur on mobile)
         ctx.save();
         ctx.beginPath();
         ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
         ctx.fillStyle = n.color;
-        ctx.shadowColor = n.color;
-        ctx.shadowBlur = 14;
+        if (!isMobile) {
+          ctx.shadowColor = n.color;
+          ctx.shadowBlur = 10;
+        }
         ctx.fill();
         ctx.restore();
 
-        // Connect nearby nodes
-        for (let j = i + 1; j < nodes.length; j++) {
-          const n2 = nodes[j];
-          const dx = n.x - n2.x;
-          const dy = n.y - n2.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+        // Connect nearby nodes only on desktop to save mobile CPU
+        if (!isMobile) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const n2 = nodes[j];
+            const dx = n.x - n2.x;
+            const dy = n.y - n2.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 150) {
+            if (dist < 150) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.moveTo(n.x, n.y);
+              ctx.lineTo(n2.x, n2.y);
+              ctx.strokeStyle = `rgba(255, 0, 60, ${(1 - dist / 150) * 0.22})`;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+
+          // Mouse laser connection
+          const mdx = n.x - mouseX;
+          const mdy = n.y - mouseY;
+          const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+
+          if (mdist < 190) {
             ctx.save();
             ctx.beginPath();
             ctx.moveTo(n.x, n.y);
-            ctx.lineTo(n2.x, n2.y);
-            ctx.strokeStyle = `rgba(255, 0, 60, ${(1 - dist / 150) * 0.22})`;
-            ctx.lineWidth = 1;
+            ctx.lineTo(mouseX, mouseY);
+            ctx.strokeStyle = `rgba(0, 246, 255, ${(1 - mdist / 190) * 0.45})`;
+            ctx.lineWidth = 1.4;
             ctx.stroke();
             ctx.restore();
           }
-        }
-
-        // Mouse laser connection
-        const mdx = n.x - mouseX;
-        const mdy = n.y - mouseY;
-        const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-
-        if (mdist < 190) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.moveTo(n.x, n.y);
-          ctx.lineTo(mouseX, mouseY);
-          ctx.strokeStyle = `rgba(0, 246, 255, ${(1 - mdist / 190) * 0.45})`;
-          ctx.lineWidth = 1.4;
-          ctx.stroke();
-          ctx.restore();
         }
       });
 
       animId = requestAnimationFrame(render);
     };
 
-    render();
+    animId = requestAnimationFrame(render);
 
     return () => {
       window.removeEventListener("resize", handleResize);

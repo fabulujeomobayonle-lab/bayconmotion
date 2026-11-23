@@ -29,8 +29,9 @@ export function MusicPlayer() {
     return unsub;
   }, []);
 
-  // Equalizer canvas animation loop
+  // Equalizer canvas animation loop (only loops when expanded AND playing to save mobile battery)
   useEffect(() => {
+    if (!expanded) return;
     let animId: number;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -48,10 +49,9 @@ export function MusicPlayer() {
       const barWidth = (w - (numBars - 1) * 2) / numBars;
 
       for (let i = 0; i < numBars; i++) {
-        // Read frequencies with fallback animated idle wave if not playing
         let val = freqData[i] || 0;
         if (!state.isPlaying) {
-          val = Math.sin(Date.now() * 0.003 + i * 0.3) * 12 + 14;
+          val = 14;
         }
 
         const barHeight = Math.max(3, (val / 255) * h * 0.95);
@@ -64,21 +64,22 @@ export function MusicPlayer() {
         grad.addColorStop(1, "rgba(255, 0, 60, 0.2)");
 
         ctx.fillStyle = grad;
-        ctx.shadowColor = i % 2 === 0 ? "#00f6ff" : "#ff003c";
-        ctx.shadowBlur = state.isPlaying ? 8 : 2;
-
         ctx.beginPath();
-        // Rounded top bars
         const r = Math.min(2, barWidth / 2);
         ctx.roundRect(x, y, barWidth, barHeight, [r, r, 0, 0]);
         ctx.fill();
       }
 
-      animId = requestAnimationFrame(render);
+      // Only schedule next frame if actually playing
+      if (state.isPlaying && !document.hidden) {
+        animId = requestAnimationFrame(render);
+      }
     };
 
-    animId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animId);
+    render();
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+    };
   }, [state.isPlaying, expanded]);
 
   const handlePlayToggle = async () => {

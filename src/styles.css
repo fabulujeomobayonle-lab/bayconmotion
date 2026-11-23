@@ -1509,6 +1509,39 @@
   .scene-word {
     font-size: 7rem;
   }
+
+  /* Mobile Performance & Battery Optimization */
+  .backdrop-blur-3xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-xl {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  /* GPU Hardware Acceleration for buttery-smooth mobile scrolling */
+  main, section {
+    transform: translateZ(0);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Defer off-screen sections until user scrolls near them */
+  section {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 600px;
+  }
+
+  /* Instant tap feedback without 300ms mobile delay */
+  * {
+    touch-action: manipulation;
+  }
+
+  /* Reduce GPU shader text-shadows on mobile screens */
+  .neon-text,
+  .neon-text-cyan,
+  .neon-cyan-glow,
+  .neon-violet-glow {
+    text-shadow: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

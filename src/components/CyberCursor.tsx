@@ -6,8 +6,16 @@ export function CyberCursor() {
   const [hoverText, setHoverText] = useState<string | null>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [visible, setVisible] = useState(true);
+  const [isTouchDevice, setIsTouchDevice] = useState(true);
 
   useEffect(() => {
+    // Disable completely on mobile touch screens to save battery and CPU
+    if (typeof window !== "undefined") {
+      const isTouch = window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 768;
+      setIsTouchDevice(isTouch);
+      if (isTouch) return;
+    }
+
     let mouseX = -100;
     let mouseY = -100;
     let ringX = -100;
@@ -74,7 +82,7 @@ export function CyberCursor() {
     };
   }, [isHovering]);
 
-  if (!visible) return null;
+  if (isTouchDevice || !visible) return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden hidden md:block">
