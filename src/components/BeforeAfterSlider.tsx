@@ -1,113 +1,220 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { sound } from "./SoundSystem";
-import { SlidersHorizontal, Sparkles, Flame, Eye, Film, Volume2, Activity, Play } from "lucide-react";
+import {
+  SlidersHorizontal,
+  Sparkles,
+  Flame,
+  Eye,
+  Film,
+  Sliders,
+  Maximize2,
+  Check,
+  Zap,
+} from "lucide-react";
+
+import beforeImg from "@/assets/grade-before.jpg";
+import afterImg from "@/assets/grade-after.jpg";
 
 export function BeforeAfterSlider() {
   const [sliderPos, setSliderPos] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleMove = (clientX: number) => {
+  const updatePosition = useCallback((clientX: number) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = clientX - rect.left;
-    let pct = (x / rect.width) * 100;
-    if (pct < 0) pct = 0;
-    if (pct > 100) pct = 100;
+    const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
     setSliderPos(pct);
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    sound.playClick(750);
+    updatePosition(e.clientX);
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    handleMove(e.touches[0].clientX);
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging && e.buttons !== 1) return;
+    updatePosition(e.clientX);
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (e.buttons === 1) {
-      handleMove(e.clientX);
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(false);
+    try {
+      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+    } catch {}
+  };
+
+  // Keyboard accessibility
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft") {
+      setSliderPos((prev) => Math.max(0, prev - 5));
+      sound.playClick(600);
+    } else if (e.key === "ArrowRight") {
+      setSliderPos((prev) => Math.min(100, prev + 5));
+      sound.playClick(600);
     }
   };
 
   return (
-    <div className="relative rounded-3xl border border-primary/50 bg-card/90 p-5 shadow-[0_0_60px_rgba(255,0,60,0.25)] backdrop-blur-2xl">
+    <div className="relative rounded-3xl border border-cyan-400/40 bg-card/90 p-5 md:p-7 shadow-[0_0_60px_rgba(0,246,255,0.2)] backdrop-blur-2xl">
       {/* Studio Program Monitor Header */}
-      <div className="flex flex-wrap items-center justify-between border-b border-white/10 pb-3 mb-4 gap-2">
+      <div className="flex flex-wrap items-center justify-between border-b border-white/10 pb-4 mb-4 gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 rounded-md bg-red-500/20 px-2 py-0.5 border border-red-500/50 text-primary font-mono text-[11px] font-bold">
+          <div className="flex items-center gap-1.5 rounded-lg bg-red-500/20 px-2.5 py-1 border border-red-500/50 text-primary font-mono text-xs font-bold shadow-[0_0_15px_rgba(255,0,60,0.3)]">
             <span className="h-2 w-2 rounded-full bg-primary animate-ping" />
-            <span>A/B COMPARISON ENGINE</span>
+            <span className="tracking-wider">DAVINCI ACES A/B MONITOR</span>
           </div>
-          <span className="font-mono text-xs font-bold text-foreground tracking-widest hidden sm:inline">
-            TIMECODE: 00:01:24:18
+          <span className="font-mono text-xs font-bold text-slate-300 tracking-widest hidden sm:inline">
+            TIMECODE: 00:02:18:04
           </span>
         </div>
-        <div className="flex items-center gap-3 font-mono text-[11px] text-muted-foreground">
-          <span className="text-cyan-400 font-bold hidden md:inline">4K DCI • 59.94 FPS</span>
-          <span className="rounded bg-white/5 border border-white/10 px-2 py-0.5 text-slate-300">
-            DRAG SCRUBBER
-          </span>
+
+        {/* Quick Jump Buttons */}
+        <div className="flex items-center gap-1.5 font-mono text-xs">
+          <button
+            onClick={() => {
+              sound.playClick(650);
+              setSliderPos(0);
+            }}
+            className={`rounded-lg px-2.5 py-1 border transition-all ${
+              sliderPos <= 5
+                ? "border-primary bg-primary/25 text-white"
+                : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
+            }`}
+          >
+            RAW LOG (0%)
+          </button>
+          <button
+            onClick={() => {
+              sound.playClick(700);
+              setSliderPos(50);
+            }}
+            className={`rounded-lg px-2.5 py-1 border transition-all ${
+              sliderPos > 40 && sliderPos < 60
+                ? "border-cyan-400 bg-cyan-500/25 text-cyan-300 shadow-[0_0_15px_rgba(0,246,255,0.3)]"
+                : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
+            }`}
+          >
+            50/50 SPLIT
+          </button>
+          <button
+            onClick={() => {
+              sound.playClick(750);
+              setSliderPos(100);
+            }}
+            className={`rounded-lg px-2.5 py-1 border transition-all ${
+              sliderPos >= 95
+                ? "border-cyan-400 bg-cyan-500/25 text-cyan-300"
+                : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
+            }`}
+          >
+            GRADED (100%)
+          </button>
         </div>
       </div>
 
+      {/* Main Interactive Comparison Viewport */}
       <div
         ref={containerRef}
-        onMouseMove={handleMouseMove}
-        onTouchMove={handleTouchMove}
-        onClick={(e) => {
-          sound.playClick(750);
-          handleMove(e.clientX);
-        }}
-        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 select-none cursor-ew-resize shadow-2xl"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="slider"
+        aria-label="Before and after color grade comparison slider"
+        aria-valuenow={Math.round(sliderPos)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/15 select-none cursor-ew-resize shadow-2xl group focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-black"
       >
-        {/* AFTER EDIT (FULL COVERAGE UNDERNEATH - VIVID CINEMATIC) */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/90 via-background to-cyan-950 p-6 sm:p-8 flex flex-col justify-between contrast-125 saturate-150">
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-2 rounded-lg bg-black/70 border border-emerald-400/50 px-3 py-1 text-emerald-400 font-mono text-xs font-bold shadow-[0_0_15px_rgba(0,255,102,0.3)]">
-              <Activity className="h-3.5 w-3.5 animate-pulse" />
-              <span>RETENTION: 96.4%</span>
-            </div>
-            <span className="rounded-full bg-gradient-to-r from-primary to-pink-500 px-4 py-1 font-impact text-xs text-black tracking-widest shadow-[0_0_20px_rgba(255,0,60,0.8)] border border-white/40">
-              AFTER: BAYCON CINEMATIC EDIT 🔥
-            </span>
-          </div>
+        {/* UNDERNEATH LAYER: AFTER EDIT (GRADED CINEMATIC) */}
+        <img
+          src={afterImg}
+          alt="After: Baycon Hollywood Cinematic Color Grade"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          loading="eager"
+        />
 
-          <div className="space-y-4 max-w-lg">
-            <span className="inline-block rounded-xl bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 px-4 py-2 font-impact text-base sm:text-xl text-black shadow-[0_0_25px_rgba(255,190,11,0.7)] animate-bounce">
-              ⚡ 10X RETENTION HOOK SURGERY!
-            </span>
-            <div className="font-mono text-xs text-cyan-300 flex flex-wrap items-center gap-2 bg-black/60 p-2.5 rounded-xl border border-cyan-400/40 backdrop-blur-md">
-              <Sparkles className="h-4 w-4 text-cyan-400 shrink-0" />
-              <span>SFX • 0.6S CUTS • 10-BIT ACES LUT • SPATIAL SUB-BASS</span>
-            </div>
+        {/* AFTER BADGE & METRICS (RIGHT SIDE) */}
+        <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-1.5 pointer-events-none">
+          <div className="flex items-center gap-1.5 rounded-full bg-black/80 px-3 py-1 border border-cyan-400/60 font-mono text-[11px] font-black text-cyan-300 shadow-[0_0_20px_rgba(0,246,255,0.4)] backdrop-blur-md">
+            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <span>AFTER: BAYCON CINEMATIC GRADE</span>
           </div>
+          <span className="font-mono text-[9px] text-slate-300 bg-black/70 px-2 py-0.5 rounded border border-white/10">
+            ACES 10-BIT • FILM GRAIN • BALANCED SKIN
+          </span>
         </div>
 
-        {/* BEFORE RAW (CLIPPED OVERLAY - FLAT LOG PROFILE) */}
+        {/* TOP LAYER: BEFORE RAW (CLIPPED OVERLAY - FLAT LOG) */}
         <div
-          className="absolute inset-y-0 left-0 overflow-hidden bg-neutral-900 grayscale brightness-70 border-r-2 border-primary shadow-[15px_0_30px_rgba(0,0,0,0.9)]"
-          style={{ width: `${sliderPos}%` }}
+          className="absolute inset-0 overflow-hidden pointer-events-none"
+          style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
         >
-          <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-between w-[650px] md:w-[900px]">
-            <div>
-              <span className="rounded-lg bg-neutral-800/90 px-3 py-1.5 font-mono text-xs text-neutral-400 border border-neutral-700">
-                BEFORE: RAW UNGRADED FOOTAGE (FLAT LOG)
-              </span>
-            </div>
+          <img
+            src={beforeImg}
+            alt="Before: Flat Raw Unedited Camera Log Footage"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            loading="eager"
+          />
 
-            <div className="space-y-2 opacity-70 bg-black/50 p-4 rounded-xl border border-neutral-800 max-w-md">
-              <p className="font-mono text-xs text-neutral-300">
-                Dull skin tones, no kinetic pacing, flat audio, zero sound effects, audience drops in 3 seconds...
-              </p>
+          {/* BEFORE BADGE (LEFT SIDE) */}
+          <div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-1.5">
+            <div className="flex items-center gap-1.5 rounded-full bg-black/80 px-3 py-1 border border-red-500/60 font-mono text-[11px] font-black text-red-400 shadow-[0_0_20px_rgba(255,0,60,0.4)] backdrop-blur-md">
+              <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
+              <span>BEFORE: RAW UNGRADED LOG</span>
             </div>
+            <span className="font-mono text-[9px] text-slate-300 bg-black/70 px-2 py-0.5 rounded border border-white/10">
+              FLAT S-LOG • LOW CONTRAST • DULL
+            </span>
           </div>
         </div>
 
-        {/* SLIDER HANDLE BAR */}
+        {/* SLIDING VERTICAL DIVIDER LINE */}
         <div
-          className="pointer-events-none absolute inset-y-0 -ml-5 flex items-center justify-center"
+          className="absolute inset-y-0 -ml-[1.5px] w-[3px] bg-gradient-to-b from-cyan-400 via-white to-primary pointer-events-none shadow-[0_0_20px_#00f6ff] z-20"
+          style={{ left: `${sliderPos}%` }}
+        />
+
+        {/* SLIDER HANDLE / SCRUBBER BADGE */}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 -ml-6 z-30 pointer-events-none transition-transform duration-75 group-hover:scale-110"
           style={{ left: `${sliderPos}%` }}
         >
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-pink-500 text-black shadow-[0_0_30px_rgba(255,0,60,1)] border-2 border-white">
-            <SlidersHorizontal className="h-5 w-5 font-bold" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 via-white to-primary text-black shadow-[0_0_35px_rgba(0,246,255,0.9)] border-2 border-white">
+            <SlidersHorizontal className="h-6 w-6 font-black" />
           </div>
+        </div>
+
+        {/* BOTTOM INSTRUCTION PILL */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none rounded-full bg-black/80 px-4 py-1.5 border border-white/20 backdrop-blur-md font-mono text-[11px] font-bold text-slate-200 tracking-wider shadow-xl flex items-center gap-2">
+          <span className="text-cyan-400">◀</span>
+          <span>DRAG SLIDER TO REVEAL TRANSFORMATION</span>
+          <span className="text-primary">▶</span>
+        </div>
+      </div>
+
+      {/* Footer Specs Console */}
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-center text-xs">
+        <div className="rounded-xl border border-white/10 bg-black/40 p-2.5">
+          <span className="text-[10px] text-slate-400 block uppercase">COLOR SCIENCE</span>
+          <span className="font-bold text-cyan-300">ACEScc 1.3 / DCI-P3</span>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-black/40 p-2.5">
+          <span className="text-[10px] text-slate-400 block uppercase">DYNAMIC RANGE</span>
+          <span className="font-bold text-emerald-400">14.5+ STOPS RECOVERED</span>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-black/40 p-2.5">
+          <span className="text-[10px] text-slate-400 block uppercase">SKIN-TONE MATRIX</span>
+          <span className="font-bold text-amber-300">TRUE TONE ISOLATION</span>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-black/40 p-2.5">
+          <span className="text-[10px] text-slate-400 block uppercase">OUTPUT PIPELINE</span>
+          <span className="font-bold text-primary">PRORES 422 HQ / 4K</span>
         </div>
       </div>
     </div>
