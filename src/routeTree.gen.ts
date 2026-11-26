@@ -11,19 +11,13 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedVaultRouteImport } from './routes/_authenticated/vault'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as ShowcaseRouteImport } from './routes/showcase'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ContactRouteImport } from './routes/contact'
-import { Route as VideoAdminRouteImport } from './routes/video-admin'
-
-const VideoAdminRoute = VideoAdminRouteImport.update({
-  id: '/video-admin',
-  path: '/video-admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -84,30 +78,36 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
+const AuthenticatedVaultRoute = AuthenticatedVaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/vault': typeof AuthenticatedVaultRoute
   '/services': typeof ServicesRoute
   '/portfolio': typeof PortfolioRoute
   '/showcase': typeof ShowcaseRoute
   '/about': typeof AboutRoute
   '/pricing': typeof PricingRoute
   '/contact': typeof ContactRoute
-  '/video-admin': typeof VideoAdminRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/vault': typeof AuthenticatedVaultRoute
   '/services': typeof ServicesRoute
   '/portfolio': typeof PortfolioRoute
   '/showcase': typeof ShowcaseRoute
   '/about': typeof AboutRoute
   '/pricing': typeof PricingRoute
   '/contact': typeof ContactRoute
-  '/video-admin': typeof VideoAdminRoute
 }
 
 export interface FileRoutesById {
@@ -116,21 +116,21 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/vault': typeof AuthenticatedVaultRoute
   '/services': typeof ServicesRoute
   '/portfolio': typeof PortfolioRoute
   '/showcase': typeof ShowcaseRoute
   '/about': typeof AboutRoute
   '/pricing': typeof PricingRoute
   '/contact': typeof ContactRoute
-  '/video-admin': typeof VideoAdminRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/admin' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact' | '/video-admin'
+  fullPaths: '/' | '/auth' | '/admin' | '/vault' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/admin' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact' | '/video-admin'
-  id: '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/admin' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact' | '/video-admin'
+  to: '/' | '/auth' | '/admin' | '/vault' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact'
+  id: '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/admin' | '/_authenticated/vault' | '/services' | '/portfolio' | '/showcase' | '/about' | '/pricing' | '/contact'
   fileRoutesById: FileRoutesById
 }
 
@@ -144,7 +144,6 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   PricingRoute: typeof PricingRoute
   ContactRoute: typeof ContactRoute
-  VideoAdminRoute: typeof VideoAdminRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -219,22 +218,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/video-admin': {
-      id: '/video-admin'
-      path: '/video-admin'
-      fullPath: '/video-admin'
-      preLoaderRoute: typeof VideoAdminRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/vault': {
+      id: '/_authenticated/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof AuthenticatedVaultRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedVaultRoute: typeof AuthenticatedVaultRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedVaultRoute: AuthenticatedVaultRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -250,7 +251,6 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   PricingRoute: PricingRoute,
   ContactRoute: ContactRoute,
-  VideoAdminRoute: VideoAdminRoute,
 }
 
 export const routeTree = rootRouteImport
