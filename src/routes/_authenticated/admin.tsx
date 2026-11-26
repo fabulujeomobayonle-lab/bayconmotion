@@ -593,9 +593,21 @@ function AdminPage() {
                                 )}
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
+
+                            {parsed && parsed.isShortLink && (
+                              <div className="text-[11px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/25 px-3 py-1.5 rounded-lg ml-2">
+                                ⚠️ <strong>Short TikTok link detected:</strong> TikTok restricts short links (<span className="text-cyan-400 font-bold">vm.tiktok.com</span>) in web players. For in-page playback, open it in a browser and copy the full link (<span className="text-cyan-400">tiktok.com/@.../video/...</span>).
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-2 text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                      <span className="text-cyan-400 font-bold">💡 Tip:</span>
+                      <span>For TikTok, paste the full URL from the browser bar (<code className="text-cyan-300">tiktok.com/@user/video/12345...</code>) for clean in-page video playback.</span>
+                    </div>
 
                       <button
                         type="button"

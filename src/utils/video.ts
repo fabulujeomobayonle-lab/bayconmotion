@@ -20,6 +20,7 @@ export interface ParsedVideo {
   platformName: string;
   isDirectVideo: boolean;
   isVertical: boolean;
+  isShortLink?: boolean;
   brandColor: string;
   badgeBg: string;
 }
@@ -74,44 +75,51 @@ export function parseVideoUrl(
     };
   }
 
-  // 2. TIKTOK (Full videos, mobile links, v2 embeds, or short vm.tiktok.com links)
+  // 2. TIKTOK (Full videos, mobile links, v1 player, or short vm.tiktok.com links)
   // Formats:
   // https://www.tiktok.com/@username/video/7234567890123456789
   // https://www.tiktok.com/v/7234567890123456789.html
   // https://m.tiktok.com/v/7234567890123456789.html
-  // https://www.tiktok.com/embed/v2/7234567890123456789
+  // https://www.tiktok.com/player/v1/7234567890123456789
   // https://vm.tiktok.com/ZMh2xXxXx/
-  const tiktokIdMatch = clean.match(
-    /(?:tiktok\.com\/(?:@[\w.-]+\/video\/|v\/|embed\/v2\/|embed\/))(\d+)/i
-  );
+  const tiktokIdMatch =
+    clean.match(/(?:tiktok\.com\/(?:@[\w.-]+\/video\/|v\/|embed\/v2\/|embed\/|player\/v1\/))(\d+)/i) ||
+    clean.match(/tiktok\.com\/.*[?&]video_id=(\d+)/i) ||
+    clean.match(/tiktok\.com\/.*\/(\d{15,22})/i) ||
+    (clean.includes("tiktok.com") && clean.match(/(\d{15,22})/));
+
   if (tiktokIdMatch && tiktokIdMatch[1]) {
     const id = tiktokIdMatch[1];
     return {
-      embedUrl: `https://www.tiktok.com/embed/v2/${id}`,
-      watchUrl: `https://www.tiktok.com/video/${id}`,
+      // Official TikTok oEmbed player endpoint (does NOT trigger X-Frame-Options SAMEORIGIN)
+      embedUrl: `https://www.tiktok.com/player/v1/${id}?embed_from=oembed&music_info=1&description=1&autoplay=1`,
+      watchUrl: `https://www.tiktok.com/@user/video/${id}`,
       videoId: id,
       thumbnailUrl: null,
       platform: "tiktok",
       platformName: "TikTok",
       isDirectVideo: false,
       isVertical: true,
+      isShortLink: false,
       brandColor: "#00F2FE",
       badgeBg: "bg-cyan-500/15 text-cyan-300 border-cyan-500/40 shadow-[0_0_12px_rgba(0,242,254,0.3)]",
     };
   }
 
-  const tiktokShortMatch = clean.match(/(?:vm\.tiktok\.com|vt\.tiktok\.com)\/([\w-]+)/i);
+  // TikTok Short Links (vm.tiktok.com, vt.tiktok.com, tiktok.com/t)
+  const tiktokShortMatch = clean.match(/(?:vm\.tiktok\.com|vt\.tiktok\.com|tiktok\.com\/t)\/([\w-]+)/i);
   if (tiktokShortMatch && tiktokShortMatch[1]) {
     const code = tiktokShortMatch[1];
     return {
-      embedUrl: `https://www.tiktok.com/embed/${code}`,
+      embedUrl: null, // Short links cannot be embedded directly in iframes by TikTok
       watchUrl: clean,
       videoId: code,
       thumbnailUrl: null,
       platform: "tiktok",
-      platformName: "TikTok",
+      platformName: "TikTok (Short Link)",
       isDirectVideo: false,
       isVertical: true,
+      isShortLink: true,
       brandColor: "#00F2FE",
       badgeBg: "bg-cyan-500/15 text-cyan-300 border-cyan-500/40 shadow-[0_0_12px_rgba(0,242,254,0.3)]",
     };
