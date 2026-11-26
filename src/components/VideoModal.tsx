@@ -50,6 +50,14 @@ export function VideoModal({
           <span className="rounded-full bg-primary/20 px-3 py-1 font-mono text-xs font-bold text-primary border border-primary/40">
             {project.category}
           </span>
+          <span className={`rounded-full px-2.5 py-1 font-mono text-[11px] font-bold border ${parsed.badgeBg}`}>
+            {parsed.platformName.toUpperCase()}
+          </span>
+          {parsed.isVertical && (
+            <span className="rounded-full bg-cyan-500/20 px-2 py-1 font-mono text-[10px] font-bold text-cyan-300 border border-cyan-500/40">
+              9:16 VERTICAL
+            </span>
+          )}
           <h2 className="font-display text-xl md:text-2xl font-black text-foreground">
             {project.title}
           </h2>
@@ -60,7 +68,7 @@ export function VideoModal({
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-[11px] font-mono text-cyan-400 hover:underline ml-auto"
             >
-              <span>Watch on original site</span>
+              <span>Watch on {parsed.platformName}</span>
               <ExternalLink className="h-3 w-3" />
             </a>
           )}
@@ -69,17 +77,30 @@ export function VideoModal({
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Video Player Frame */}
-          <div className="lg:col-span-2 relative aspect-video w-full rounded-xl border border-border bg-black overflow-hidden flex items-center justify-center">
+          <div
+            className={`lg:col-span-2 relative w-full rounded-xl border border-border bg-black overflow-hidden flex items-center justify-center transition-all ${
+              parsed.isVertical
+                ? "max-w-[380px] aspect-[9/16] mx-auto shadow-[0_0_50px_rgba(0,246,255,0.25)]"
+                : "aspect-video"
+            }`}
+          >
             {parsed.isDirectVideo && (project.videoUrl || project.embedUrl) ? (
               <video
                 src={project.videoUrl || project.embedUrl || ""}
                 controls
                 autoPlay
+                playsInline
                 className="w-full h-full object-contain bg-black"
               />
             ) : parsed.embedUrl ? (
               <iframe
-                src={parsed.embedUrl}
+                src={
+                  parsed.platform === "youtube"
+                    ? parsed.embedUrl.includes("?")
+                      ? `${parsed.embedUrl}&autoplay=1`
+                      : `${parsed.embedUrl}?autoplay=1`
+                    : parsed.embedUrl
+                }
                 title={project.title}
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

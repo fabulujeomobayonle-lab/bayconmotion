@@ -199,7 +199,7 @@ function AdminPage() {
       return toast.error("Client Name is required");
     }
     if (validVideoUrls.length === 0) {
-      return toast.error("At least one YouTube video link is required");
+      return toast.error("At least one video link is required (YouTube, TikTok, Instagram, etc.)");
     }
 
     const primaryVideo = validVideoUrls[0];
@@ -539,11 +539,11 @@ function AdminPage() {
                       />
                     </div>
 
-                    {/* MULTIPLE YOUTUBE VIDEO LINKS */}
+                    {/* MULTIPLE VIDEO LINKS (YOUTUBE, TIKTOK, INSTAGRAM, ETC.) */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          YouTube Video Links Created For Them *
+                          Video Links Created For Them (YouTube, TikTok, Instagram, Vimeo, Direct MP4, etc.) *
                         </label>
                         <span className="text-[10px] font-mono text-cyan-400">
                           {clientVideoUrls.length} {clientVideoUrls.length === 1 ? "Video Link" : "Video Links"}
@@ -551,36 +551,50 @@ function AdminPage() {
                       </div>
 
                       <div className="space-y-2.5">
-                        {clientVideoUrls.map((url, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <div className="flex items-center justify-center h-11 w-11 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 font-mono text-xs font-bold shrink-0">
-                              #{idx + 1}
+                        {clientVideoUrls.map((url, idx) => {
+                          const parsed = url ? parseYouTubeUrl(url) : null;
+                          return (
+                            <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-background/50 p-2 rounded-xl border border-border/60">
+                              <div className="flex items-center gap-2 flex-1">
+                                <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 font-mono text-xs font-bold shrink-0">
+                                  #{idx + 1}
+                                </div>
+                                <input
+                                  type="url"
+                                  value={url}
+                                  onChange={(e) => {
+                                    const next = [...clientVideoUrls];
+                                    next[idx] = e.target.value;
+                                    setClientVideoUrls(next);
+                                  }}
+                                  placeholder={`Paste YouTube, TikTok, Instagram, Vimeo, or MP4 link (Video ${idx + 1})`}
+                                  className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-2 justify-end pl-12 sm:pl-0">
+                                {parsed && parsed.platform !== "unknown" && (
+                                  <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded border shrink-0 ${parsed.badgeBg}`}>
+                                    {parsed.platformName} {parsed.isVertical ? "• 9:16" : ""}
+                                  </span>
+                                )}
+
+                                {clientVideoUrls.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setClientVideoUrls(clientVideoUrls.filter((_, i) => i !== idx));
+                                    }}
+                                    className="p-2.5 rounded-lg border border-border text-muted-foreground hover:text-red-400 hover:border-red-400/50 transition-colors shrink-0"
+                                    title="Remove Video Link"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            <input
-                              type="url"
-                              value={url}
-                              onChange={(e) => {
-                                const next = [...clientVideoUrls];
-                                next[idx] = e.target.value;
-                                setClientVideoUrls(next);
-                              }}
-                              placeholder={`https://youtube.com/watch?v=... (Video ${idx + 1})`}
-                              className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
-                            />
-                            {clientVideoUrls.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setClientVideoUrls(clientVideoUrls.filter((_, i) => i !== idx));
-                                }}
-                                className="p-3 rounded-xl border border-border text-muted-foreground hover:text-red-400 hover:border-red-400/50 transition-colors shrink-0"
-                                title="Remove Video Link"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       <button
@@ -589,7 +603,7 @@ function AdminPage() {
                         className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-dashed border-cyan-500/40 bg-cyan-500/10 px-4 py-2 font-mono text-xs font-bold text-cyan-400 hover:bg-cyan-500/20 transition-all cursor-pointer"
                       >
                         <Plus className="h-3.5 w-3.5" />
-                        <span>+ Add Another YouTube Video Link</span>
+                        <span>+ Add Another Video Link (TikTok, Instagram, YouTube)</span>
                       </button>
                     </div>
 
@@ -727,12 +741,13 @@ function AdminPage() {
                             {thumb ? (
                               <img src={thumb} alt={client.client_name} className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-zinc-900">
-                                <Play className="h-8 w-8 text-white/30" />
+                              <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-4 text-center">
+                                <Play className="h-8 w-8 text-white/40 mb-1" />
+                                <span className="text-[10px] font-mono text-muted-foreground uppercase">{yt.platformName}</span>
                               </div>
                             )}
 
-                            <div className="absolute top-3 left-3">
+                            <div className="absolute top-3 left-3 flex items-center gap-1.5">
                               <span
                                 className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md backdrop-blur-md ${
                                   client.status === "published" ? "bg-primary text-black" : "bg-black/80 text-white border border-white/20"
@@ -740,6 +755,14 @@ function AdminPage() {
                               >
                                 {client.status}
                               </span>
+                              <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-md border backdrop-blur-md ${yt.badgeBg}`}>
+                                {yt.platformName}
+                              </span>
+                              {yt.isVertical && (
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 backdrop-blur-md">
+                                  9:16
+                                </span>
+                              )}
                             </div>
                           </div>
 

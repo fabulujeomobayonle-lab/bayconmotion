@@ -603,9 +603,9 @@ function VaultWorkForm({ work, onClose, onSaved }: { work: Work | null; onClose:
             <textarea name="description" rows={3} maxLength={1000} defaultValue={work?.description ?? ""} className={vaultInputCls + " resize-none"} />
           </VaultField>
 
-          <VaultField label="YouTube Link / Video URL">
-            <input name="embed_url" type="text" defaultValue={work?.embed_url ?? ""} placeholder="e.g. https://www.youtube.com/watch?v=..." className={vaultInputCls} />
-            <p className="mt-1 text-[10px] text-muted-foreground">Paste YouTube link here. Cover thumbnail will generate automatically.</p>
+          <VaultField label="Video Link / URL (YouTube, TikTok, Instagram, Vimeo, etc.)">
+            <input name="embed_url" type="text" defaultValue={work?.embed_url ?? ""} placeholder="e.g. https://www.tiktok.com/@... or https://instagram.com/reel/... or YouTube" className={vaultInputCls} />
+            <p className="mt-1 text-[10px] text-muted-foreground">Supports TikTok, Instagram Reels, YouTube, Vimeo, and direct MP4 links.</p>
           </VaultField>
 
           <VaultField label={`Thumbnail Image (optional)`}>
@@ -726,8 +726,8 @@ function VaultReviewForm({ review, onClose, onSaved }: { review: ClientReview | 
             </VaultField>
           </div>
 
-          <VaultField label="Video Link (optional)">
-            <input name="embed_url" type="text" defaultValue={review?.embed_url ?? ""} placeholder="e.g. https://www.youtube.com/watch?v=..." className={vaultInputCls} />
+          <VaultField label="Video Link (optional - YouTube, TikTok, Instagram, etc.)">
+            <input name="embed_url" type="text" defaultValue={review?.embed_url ?? ""} placeholder="e.g. YouTube, TikTok, or Instagram Reel URL..." className={vaultInputCls} />
           </VaultField>
 
           <div className="flex items-center gap-3 pt-2 font-mono text-xs">

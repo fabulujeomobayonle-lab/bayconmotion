@@ -248,14 +248,19 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
             </div>
           )}
 
-          {/* YOUTUBE VIDEO SECTION */}
+          {/* VIDEO PLAYER SECTION (Supports YouTube, TikTok, Instagram, Vimeo, Direct MP4, etc.) */}
           <div>
             <div className="flex items-center justify-between mb-3 font-mono text-xs">
               <span className="text-cyan-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
                 <Play className="h-3.5 w-3.5 fill-cyan-400" />
                 <span>
-                  YOUTUBE VIDEO {videoList.length > 1 ? `#${activeVideoIndex + 1}` : ""} CREATED FOR {activeClient.client_name.toUpperCase()}
+                  {yt.platformName.toUpperCase()} VIDEO {videoList.length > 1 ? `#${activeVideoIndex + 1}` : ""} CREATED FOR {activeClient.client_name.toUpperCase()}
                 </span>
+                {yt.isVertical && (
+                  <span className="ml-2 rounded bg-cyan-500/20 px-1.5 py-0.5 text-[9px] font-bold text-cyan-300 border border-cyan-500/30">
+                    9:16 VERTICAL
+                  </span>
+                )}
               </span>
               {currentVideoUrl && (
                 <a
@@ -264,23 +269,46 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-cyan-400 hover:underline"
                 >
-                  <span>Open in YouTube</span>
+                  <span>Open on {yt.platformName}</span>
                   <ExternalLink className="h-3 w-3" />
                 </a>
               )}
             </div>
 
-            <div className="relative aspect-video w-full rounded-2xl bg-black overflow-hidden border border-white/15 shadow-2xl group/player">
+            <div
+              className={`relative overflow-hidden rounded-2xl bg-black border border-white/15 shadow-2xl group/player transition-all duration-300 ${
+                yt.isVertical
+                  ? "w-full max-w-[420px] aspect-[9/16] mx-auto shadow-[0_0_50px_rgba(0,246,255,0.25)]"
+                  : "w-full aspect-video"
+              }`}
+            >
               {isPlaying && yt.embedUrl ? (
                 <>
-                  <iframe
-                    key={currentVideoUrl}
-                    src={yt.embedUrl.includes("?") ? `${yt.embedUrl}&autoplay=1` : `${yt.embedUrl}?autoplay=1`}
-                    title={`Video for ${activeClient.client_name}`}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
+                  {yt.isDirectVideo ? (
+                    <video
+                      key={currentVideoUrl}
+                      src={yt.embedUrl}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-contain bg-black"
+                    />
+                  ) : (
+                    <iframe
+                      key={currentVideoUrl}
+                      src={
+                        yt.platform === "youtube"
+                          ? yt.embedUrl.includes("?")
+                            ? `${yt.embedUrl}&autoplay=1`
+                            : `${yt.embedUrl}?autoplay=1`
+                          : yt.embedUrl
+                      }
+                      title={`${yt.platformName} video for ${activeClient.client_name}`}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  )}
                   <button
                     onClick={() => {
                       sound.playClick(500);
@@ -301,13 +329,37 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
                   }}
                   className="relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden select-none"
                 >
-                  {/* Thumbnail Image */}
+                  {/* Thumbnail Image or Custom High-Tech Platform Poster */}
                   {yt.thumbnailUrl ? (
                     <img
                       src={yt.thumbnailUrl}
                       alt={`Video thumbnail for ${activeClient.client_name}`}
                       className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover/player:scale-105 opacity-85"
                     />
+                  ) : yt.platform === "tiktok" ? (
+                    <div className="absolute inset-0 bg-gradient-to-tr from-[#fe2c55]/25 via-black to-[#00f2fe]/25 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,242,254,0.18)_0,transparent_70%)]" />
+                      <div className="text-center space-y-2 opacity-90">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-black/60 border border-cyan-400/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,242,254,0.3)]">
+                          <SocialIcon platform="tiktok" />
+                        </div>
+                        <div className="font-mono text-xs font-bold text-cyan-300 tracking-wider">
+                          TIKTOK PRODUCTION
+                        </div>
+                      </div>
+                    </div>
+                  ) : yt.platform === "instagram" ? (
+                    <div className="absolute inset-0 bg-gradient-to-tr from-[#833ab4]/30 via-[#fd1d1d]/20 to-[#fcb045]/25 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(225,48,108,0.2)_0,transparent_70%)]" />
+                      <div className="text-center space-y-2 opacity-90">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-black/60 border border-pink-400/30 backdrop-blur-md shadow-[0_0_30px_rgba(225,48,108,0.3)]">
+                          <SocialIcon platform="instagram" />
+                        </div>
+                        <div className="font-mono text-xs font-bold text-pink-300 tracking-wider">
+                          INSTAGRAM REEL
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-tr from-purple-950/80 via-black to-cyan-950/80" />
                   )}
@@ -317,17 +369,28 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
 
                   {/* Top info badge */}
                   <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-                    <span className="rounded-full bg-red-600/90 px-2.5 py-0.5 font-mono text-[10px] font-bold text-white shadow-md">
-                      YOUTUBE
+                    <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold border ${yt.badgeBg}`}>
+                      {yt.platformName.toUpperCase()}
                     </span>
                     <span className="rounded-full bg-black/60 px-2.5 py-0.5 font-mono text-[10px] text-slate-300 border border-white/10 backdrop-blur-md">
                       {videoList.length > 1 ? `VIDEO ${activeVideoIndex + 1} OF ${videoList.length}` : "FEATURED EDIT"}
                     </span>
                   </div>
 
-                  {/* Center Glowing Play Button (Matches portfolio style) */}
+                  {/* Center Glowing Play Button */}
                   <div className="relative z-10 flex flex-col items-center gap-3">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-primary via-red-500 to-primary text-black shadow-[0_0_40px_rgba(255,0,60,0.9)] border-2 border-white/80 transition-transform duration-300 group-hover/player:scale-115">
+                    <div
+                      className="flex h-20 w-20 items-center justify-center rounded-full text-black border-2 border-white/80 transition-transform duration-300 group-hover/player:scale-115"
+                      style={{
+                        background:
+                          yt.platform === "tiktok"
+                            ? "linear-gradient(135deg, #00f2fe 0%, #fe2c55 100%)"
+                            : yt.platform === "instagram"
+                            ? "linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)"
+                            : "linear-gradient(135deg, #ff003c 0%, #ff3b30 50%, #ff003c 100%)",
+                        boxShadow: `0 0 40px ${yt.brandColor || "#ff003c"}99`,
+                      }}
+                    >
                       <Play className="h-9 w-9 ml-1.5 fill-black" />
                     </div>
                     <div className="rounded-full bg-black/85 px-4 py-1.5 font-display text-xs font-black tracking-widest text-white border border-white/20 backdrop-blur-md shadow-xl group-hover/player:border-primary/80 group-hover/player:text-primary transition-all">
@@ -354,7 +417,7 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
                     rel="noreferrer"
                     className="rounded-xl bg-primary px-6 py-2.5 font-display text-xs font-bold uppercase text-black hover:bg-primary/90 transition-all"
                   >
-                    Watch YouTube Video Link →
+                    Watch on {yt.platformName} →
                   </a>
                 </div>
               )}

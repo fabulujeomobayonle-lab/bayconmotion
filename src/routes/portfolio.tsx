@@ -206,9 +206,25 @@ function PortfolioPage() {
                           alt={p.title}
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
+                      ) : yt.platform === "tiktok" ? (
+                        <div className="absolute inset-0 bg-gradient-to-tr from-[#fe2c55]/30 via-black to-[#00f2fe]/30 group-hover:scale-105 transition-transform duration-500" />
+                      ) : yt.platform === "instagram" ? (
+                        <div className="absolute inset-0 bg-gradient-to-tr from-[#833ab4]/35 via-[#fd1d1d]/25 to-[#fcb045]/25 group-hover:scale-105 transition-transform duration-500" />
                       ) : (
                         <div className="absolute inset-0 bg-gradient-to-tr from-purple-950 via-background to-cyan-950 group-hover:scale-105 transition-transform duration-500" />
                       )}
+
+                      {/* Top platform & vertical badge */}
+                      <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5">
+                        <span className={`rounded bg-black/85 px-2 py-0.5 font-mono text-[9px] font-bold border backdrop-blur-md ${yt.badgeBg}`}>
+                          {yt.platformName}
+                        </span>
+                        {yt.isVertical && (
+                          <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 font-mono text-[8px] font-bold text-cyan-300 border border-cyan-500/40 backdrop-blur-md">
+                            9:16
+                          </span>
+                        )}
+                      </div>
 
                       <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-red-500 text-black shadow-[0_0_25px_rgba(255,0,60,0.9)] group-hover:scale-110 transition-transform border border-white/50">
                         <Play className="h-7 w-7 ml-1 fill-black" />
