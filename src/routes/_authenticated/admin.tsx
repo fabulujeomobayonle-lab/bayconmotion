@@ -554,55 +554,56 @@ function AdminPage() {
                         {clientVideoUrls.map((url, idx) => {
                           const parsed = url ? parseYouTubeUrl(url) : null;
                           return (
-                            <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-background/50 p-2 rounded-xl border border-border/60">
-                              <div className="flex items-center gap-2 flex-1">
-                                <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 font-mono text-xs font-bold shrink-0">
-                                  #{idx + 1}
-                                </div>
-                                <input
-                                  type="url"
-                                  value={url}
-                                  onChange={(e) => {
-                                    const next = [...clientVideoUrls];
-                                    next[idx] = e.target.value;
-                                    setClientVideoUrls(next);
-                                  }}
-                                  placeholder={`Paste YouTube, TikTok, Instagram, Vimeo, or MP4 link (Video ${idx + 1})`}
-                                  className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
-                                />
-                              </div>
-
-                              <div className="flex items-center gap-2 justify-end pl-12 sm:pl-0">
-                                {parsed && parsed.platform !== "unknown" && (
-                                  <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded border shrink-0 ${parsed.badgeBg}`}>
-                                    {parsed.platformName} {parsed.isVertical ? "• 9:16" : ""}
-                                  </span>
-                                )}
-
-                                {clientVideoUrls.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setClientVideoUrls(clientVideoUrls.filter((_, i) => i !== idx));
+                            <div key={idx} className="space-y-1.5">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-background/50 p-2 rounded-xl border border-border/60">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 font-mono text-xs font-bold shrink-0">
+                                    #{idx + 1}
+                                  </div>
+                                  <input
+                                    type="url"
+                                    value={url}
+                                    onChange={(e) => {
+                                      const next = [...clientVideoUrls];
+                                      next[idx] = e.target.value;
+                                      setClientVideoUrls(next);
                                     }}
-                                    className="p-2.5 rounded-lg border border-border text-muted-foreground hover:text-red-400 hover:border-red-400/50 transition-colors shrink-0"
-                                    title="Remove Video Link"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
+                                    placeholder={`Paste YouTube, TikTok, Instagram, Vimeo, or MP4 link (Video ${idx + 1})`}
+                                    className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-primary text-sm font-mono"
+                                  />
+                                </div>
 
-                            {parsed && parsed.isShortLink && (
-                              <div className="text-[11px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/25 px-3 py-1.5 rounded-lg ml-2">
-                                ⚠️ <strong>Short TikTok link detected:</strong> TikTok restricts short links (<span className="text-cyan-400 font-bold">vm.tiktok.com</span>) in web players. For in-page playback, open it in a browser and copy the full link (<span className="text-cyan-400">tiktok.com/@.../video/...</span>).
+                                <div className="flex items-center gap-2 justify-end pl-12 sm:pl-0">
+                                  {parsed && parsed.platform !== "unknown" && (
+                                    <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded border shrink-0 ${parsed.badgeBg}`}>
+                                      {parsed.platformName} {parsed.isVertical ? "• 9:16" : ""}
+                                    </span>
+                                  )}
+
+                                  {clientVideoUrls.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setClientVideoUrls(clientVideoUrls.filter((_, i) => i !== idx));
+                                      }}
+                                      className="p-2.5 rounded-lg border border-border text-muted-foreground hover:text-red-400 hover:border-red-400/50 transition-colors shrink-0"
+                                      title="Remove Video Link"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+
+                              {parsed && parsed.isShortLink && (
+                                <div className="text-[11px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/25 px-3 py-1.5 rounded-lg ml-2">
+                                  ⚠️ <strong>Short TikTok link detected:</strong> TikTok restricts short links (<span className="text-cyan-400 font-bold">vm.tiktok.com</span>) in web players. For in-page playback, open it in a browser and copy the full link (<span className="text-cyan-400">tiktok.com/@.../video/...</span>).
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
 
                     <div className="mt-2 text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
                       <span className="text-cyan-400 font-bold">💡 Tip:</span>
