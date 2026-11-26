@@ -2,6 +2,7 @@ import { useState } from "react";
 import { sound } from "@/components/SoundSystem";
 import { type PastClient } from "@/utils/storage";
 import { parseYouTubeUrl } from "@/utils/video";
+import { SocialEmbed } from "@/components/SocialEmbed";
 import { Users, ExternalLink, Play, Film } from "lucide-react";
 
 export function formatSocialUrl(
@@ -283,93 +284,24 @@ export function PastClientsSection({ clients }: PastClientsSectionProps) {
               }`}
             >
               {isPlaying ? (
-                yt.embedUrl ? (
-                  <>
-                    {yt.isDirectVideo ? (
-                      <video
-                        key={currentVideoUrl}
-                        src={yt.embedUrl}
-                        controls
-                        autoPlay
-                        playsInline
-                        className="w-full h-full object-contain bg-black"
-                      />
-                    ) : (
-                      <iframe
-                        key={currentVideoUrl}
-                        src={
-                          yt.platform === "youtube"
-                            ? yt.embedUrl.includes("?")
-                              ? `${yt.embedUrl}&autoplay=1`
-                              : `${yt.embedUrl}?autoplay=1`
-                            : yt.embedUrl
-                        }
-                        title={`${yt.platformName} video for ${activeClient.client_name}`}
-                        className="w-full h-full border-0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                        allowFullScreen
-                        loading="lazy"
-                      />
-                    )}
-
-                    {yt.platform === "tiktok" && (
-                      <div className="absolute bottom-2 left-2 right-2 z-20 flex items-center justify-between rounded-lg bg-black/85 px-3 py-1.5 font-mono text-[10px] text-slate-300 border border-white/10 backdrop-blur-md">
-                        <span className="text-cyan-400 font-bold">TikTok Player</span>
-                        <a
-                          href={yt.watchUrl || currentVideoUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-cyan-300 hover:underline font-bold"
-                        >
-                          <span>Open on TikTok App ↗</span>
-                        </a>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        sound.playClick(500);
-                        setIsPlaying(false);
-                      }}
-                      title="Stop Video"
-                      className="absolute top-3 right-3 z-20 flex items-center gap-1.5 rounded-lg bg-black/85 px-3 py-1.5 font-mono text-[11px] font-bold text-slate-300 hover:text-white hover:bg-black border border-white/25 backdrop-blur-md shadow-lg transition-all"
-                    >
-                      <span>STOP VIDEO</span>
-                      <span>✕</span>
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center space-y-4 bg-gradient-to-tr from-[#fe2c55]/20 via-black to-[#00f2fe]/20 p-6 text-center select-none">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-black/80 border border-cyan-400/40 shadow-[0_0_30px_rgba(0,242,254,0.4)]">
-                      <SocialIcon platform="tiktok" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="font-display text-sm font-bold text-white tracking-wide">
-                        SHORT TIKTOK LINK DETECTED
-                      </div>
-                      <p className="text-xs text-slate-300 font-mono max-w-xs mx-auto leading-relaxed">
-                        TikTok blocks short links (<span className="text-cyan-400">vm.tiktok.com</span>) in web players. Tap below to watch directly, or paste the full link (<span className="text-cyan-400">tiktok.com/@.../video/...</span>) in Admin for inline playback.
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-2 w-full max-w-xs">
-                      <a
-                        href={currentVideoUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-pink-500 px-6 py-2.5 font-display text-xs font-black uppercase text-black hover:scale-105 transition-all shadow-[0_0_25px_rgba(0,242,254,0.6)]"
-                      >
-                        <span>Open on TikTok App</span>
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                      <button
-                        onClick={() => setIsPlaying(false)}
-                        className="text-[11px] font-mono text-muted-foreground hover:text-white underline pt-1"
-                      >
-                        Back to cover
-                      </button>
-                    </div>
-                  </div>
-                )
+                <>
+                  <SocialEmbed
+                    url={currentVideoUrl}
+                    title={`${yt.platformName} video for ${activeClient.client_name}`}
+                    autoPlay={true}
+                  />
+                  <button
+                    onClick={() => {
+                      sound.playClick(500);
+                      setIsPlaying(false);
+                    }}
+                    title="Stop Video"
+                    className="absolute top-3 right-3 z-30 flex items-center gap-1.5 rounded-lg bg-black/85 px-3 py-1.5 font-mono text-[11px] font-bold text-slate-300 hover:text-white hover:bg-black border border-white/25 backdrop-blur-md shadow-lg transition-all"
+                  >
+                    <span>STOP VIDEO</span>
+                    <span>✕</span>
+                  </button>
+                </>
               ) : yt.embedUrl || yt.watchUrl ? (
                 <div
                   onClick={() => {

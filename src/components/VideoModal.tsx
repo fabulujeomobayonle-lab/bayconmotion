@@ -1,6 +1,7 @@
 import { sound } from "./SoundSystem";
 import { X, Play, Sparkles, Film, Cpu, Layers, Activity, Volume2, ExternalLink } from "lucide-react";
 import { parseYouTubeUrl } from "@/utils/video";
+import { SocialEmbed } from "./SocialEmbed";
 
 export interface ProjectData {
   id?: string;
@@ -84,62 +85,12 @@ export function VideoModal({
                 : "aspect-video"
             }`}
           >
-            {parsed.isDirectVideo && (project.videoUrl || project.embedUrl) ? (
-              <video
-                src={project.videoUrl || project.embedUrl || ""}
-                controls
-                autoPlay
-                playsInline
-                className="w-full h-full object-contain bg-black"
+            {rawUrl ? (
+              <SocialEmbed
+                url={rawUrl}
+                title={project.title}
+                autoPlay={true}
               />
-            ) : parsed.embedUrl ? (
-              <>
-                <iframe
-                  src={
-                    parsed.platform === "youtube"
-                      ? parsed.embedUrl.includes("?")
-                        ? `${parsed.embedUrl}&autoplay=1`
-                        : `${parsed.embedUrl}?autoplay=1`
-                      : parsed.embedUrl
-                  }
-                  title={project.title}
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                  allowFullScreen
-                  loading="lazy"
-                />
-                {parsed.platform === "tiktok" && (
-                  <div className="absolute bottom-2 left-2 right-2 z-20 flex items-center justify-between rounded-lg bg-black/85 px-3 py-1.5 font-mono text-[10px] text-slate-300 border border-white/10 backdrop-blur-md">
-                    <span className="text-cyan-400 font-bold">TikTok Player</span>
-                    <a
-                      href={parsed.watchUrl || project.videoUrl || project.embedUrl || ""}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-cyan-300 hover:underline font-bold"
-                    >
-                      <span>Open on TikTok App ↗</span>
-                    </a>
-                  </div>
-                )}
-              </>
-            ) : parsed.isShortLink ? (
-              <div className="flex h-full w-full flex-col items-center justify-center space-y-4 bg-gradient-to-tr from-[#fe2c55]/20 via-black to-[#00f2fe]/20 p-6 text-center select-none">
-                <div className="font-display text-sm font-bold text-white tracking-wide">
-                  SHORT TIKTOK LINK
-                </div>
-                <p className="text-xs text-slate-300 font-mono max-w-xs mx-auto leading-relaxed">
-                  TikTok blocks mobile short links (<span className="text-cyan-400">vm.tiktok.com</span>) in web players. Tap below to watch directly, or paste the full link (<span className="text-cyan-400">tiktok.com/@.../video/...</span>) in Admin.
-                </p>
-                <a
-                  href={parsed.watchUrl || project.videoUrl || project.embedUrl || ""}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-pink-500 px-6 py-2.5 font-display text-xs font-black uppercase text-black hover:scale-105 transition-all shadow-[0_0_25px_rgba(0,242,254,0.6)]"
-                >
-                  <span>Open on TikTok App</span>
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </div>
             ) : (
               <div className="relative text-center p-6 space-y-3">
                 <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/40 via-background to-cyan-950/40" />
